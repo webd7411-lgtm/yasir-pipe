@@ -63,16 +63,6 @@ class SaleController extends Controller
             ->limit(50)
             ->get()
             ->map(function ($product) {
-                // Robust Calculation for Search Dropdown
-                $ppb = $product->pieces_per_box > 0 ? $product->pieces_per_box : 1;
-                $boxQty = (float) $product->wh_box_qty;
-                $calcPieces = $boxQty * $ppb;
-
-                // If calculated pieces from boxes differs from stored pieces, trust boxes
-                if (abs($calcPieces - $product->wh_stock) > 0.1) {
-                    $product->wh_stock = $calcPieces;
-                }
-
                 return $product;
             });
 
@@ -522,18 +512,39 @@ class SaleController extends Controller
                 'updated_at' => now(),
             ];
 
-            // Update Sales Item (Decrement sold quantity)
+            // Update Sales Item (Decrement sold quantity and revenue)
             if ($sale && $sale->items) {
                 $saleItem = $sale->items->where('product_id', $productId)->first();
                 if ($saleItem) {
+                    $returnPrice = (float) ($saleItem->price ?? 0);
+                    // Calculate discount per piece to ensure net total is correctly reduced
+                    $discountPerPiece = $saleItem->total_pieces > 0 ? ($saleItem->discount_amount / $saleItem->total_pieces) : 0;
+                    
                     $saleItem->total_pieces = max(0, $saleItem->total_pieces - $qty);
                     $prod = Product::find($productId);
                     $ppb = $prod->pieces_per_box > 0 ? $prod->pieces_per_box : 1;
-                    $saleItem->qty = floor($saleItem->total_pieces / $ppb);
+                    $saleItem->qty = $saleItem->total_pieces / $ppb;
                     $saleItem->loose_pieces = $saleItem->total_pieces % $ppb;
+                    
+                    // Recalculate item total after return
+                    $newGross = $saleItem->total_pieces * $saleItem->price;
+                    $newDiscount = $saleItem->total_pieces * $discountPerPiece;
+                    $saleItem->discount_amount = $newDiscount;
+                    $saleItem->total = max(0, $newGross - $newDiscount);
+                    
                     $saleItem->save();
                 }
             }
+        }
+
+        // 2. Update Sale Header Totals
+        if ($sale) {
+            $allSaleItems = \App\Models\SaleItem::where('sale_id', $sale->id)->get();
+            $sale->total_bill_amount = $allSaleItems->sum('total');
+            // Recalculate Net (Accounting for extra discount if any)
+            $sale->total_net = max(0, $sale->total_bill_amount - ($sale->total_extradiscount ?? 0));
+            $sale->total_items = $allSaleItems->sum('total_pieces');
+            $sale->save();
         }
 
         // Inert Stock Movements
@@ -832,6 +843,14 @@ class SaleController extends Controller
         return view('admin_panel.sale.saledc', ['sale' => $sale, 'saleItems' => $items]);
     }
 
+    public function saledcThermal($id)
+    {
+        $sale = Sale::with('customer_relation')->findOrFail($id);
+        $items = $this->_getSaleItems($sale);
+
+        return view('admin_panel.sale.saledc_thermal', ['sale' => $sale, 'saleItems' => $items]);
+    }
+
     public function salereceipt($id)
     {
         $sale = Sale::with('customer_relation')->findOrFail($id);
@@ -1027,25 +1046,25 @@ class SaleController extends Controller
                 $storedQtyBox = $ppb > 0 ? ($totalPieces / $ppb) : 0;
 
                 $discount = (float) ($discounts[$index] ?? 0);
+                // 'pkr' means fixed PKR amount;  anything else ('percent' or missing) = percentage
                 $discType = $request->discount_type[$index] ?? 'percent';
 
-                // Calculate Line Total
-                // User enters: Qty in PIECES, Price PER PIECE
-                // So: Total = Total Pieces × Price Per Piece
+                // Calculate Line Total (gross before discount)
                 $lineTotal = $totalPieces * $dbPrice;
 
-                // Apply Discount
-                if ($discType === 'fixed') {
-                    // Fixed Amount Discount
-                    $calcDiscountAmount = $discount;
-                    $calcDiscountPercent = 0; // Or calculate back: ($discount / $lineTotal) * 100
-                    $lineTotal = $lineTotal - $discount;
+                // Apply Discount correctly
+                if ($discType === 'pkr') {
+                    // User entered a fixed PKR amount
+                    $calcDiscountAmount  = $discount;
+                    // Back-calculate the equivalent percent for storage/reporting (avoid division by zero)
+                    $calcDiscountPercent = $lineTotal > 0 ? round(($discount / $lineTotal) * 100, 4) : 0;
                 } else {
-                    // Percentage Discount
-                    $calcDiscountAmount = ($lineTotal * $discount / 100);
+                    // User entered a percentage
                     $calcDiscountPercent = $discount;
-                    $lineTotal = $lineTotal - $calcDiscountAmount;
+                    $calcDiscountAmount  = round($lineTotal * $discount / 100, 2);
                 }
+
+                $lineTotal = max(0, $lineTotal - $calcDiscountAmount);
 
                 $saleItem = new SaleItem;
                 $saleItem->sale_id = $sale->id;

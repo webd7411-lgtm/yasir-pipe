@@ -364,16 +364,12 @@
                                     class="menu-title">Report</span><i class="menu-arrow"></i></a>
                             <div class="submenu">
                                 <ul class="submenu-item">
-                                    <li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}"><i
-                                                class="fa-solid fa-users mr-2"></i><span>Users</span></a></li>
-                                    <li class="nav-item"><a class="nav-link" href="{{ route('roles.index') }}"><i
-                                                class="fa-solid fa-user-lock mr-2"></i><span>Roles</span></a></li>
-                                    <li class="nav-item"><a class="nav-link"
-                                            href="{{ route('permissions.index') }}"><i
-                                                class="fa-solid fa-user-lock mr-2"></i><span>Permissions</span></a>
-                                    </li>
-                                    <li class="nav-item"><a class="nav-link" href="{{ route('branch.index') }}"><i
-                                                class="fa-solid fa-code-branch mr-2"></i><span>Branches</span></a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{{ route('report.item_stock') }}"><i class="fa-solid fa-boxes-stacked mr-2"></i><span>Item Stock</span></a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{{ route('report.purchase') }}"><i class="fa-solid fa-cart-shopping mr-2"></i><span>Purchase Report</span></a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{{ route('report.sale') }}"><i class="fa-solid fa-file-invoice-dollar mr-2"></i><span>Sale Report</span></a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{{ route('report.customer.ledger') }}"><i class="fa-solid fa-book mr-2"></i><span>Customer Ledger</span></a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{{ route('report.vendor.ledger') }}"><i class="fa-solid fa-truck mr-2"></i><span>Vendor Ledger</span></a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{{ route('report.profit_loss') }}"><i class="fa-solid fa-chart-line mr-2"></i><span>Profit & Loss</span></a></li>
                                 </ul>
                             </div>
                         </li>

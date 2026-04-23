@@ -380,19 +380,29 @@
                                         {{-- Purchased Qty (Read Only) --}}
                                         <td>
                                             @php
-                                                // Controller sends: qty (remaining), original_qty, returned_qty
-                                                $remaining = $item['qty'];
-                                                $original = $item['original_qty'] ?? $remaining; // Fallback
+                                                $original = $item['original_qty'] ?? $item['qty'];
                                                 $returned = $item['returned_qty'] ?? 0;
+                                                $netRemaining = $item['max_returnable'] ?? ($original - $returned);
+                                                $ppb = $item['pieces_per_box'] ?? 1;
+                                                
+                                                // Format remaining pieces to Box.Piece
+                                                if ($ppb > 1) {
+                                                    $remBoxes = floor($netRemaining / $ppb);
+                                                    $remPcs = $netRemaining % $ppb;
+                                                    $remDisplay = $remBoxes . ($remPcs > 0 ? '.'.$remPcs : '');
+                                                } else {
+                                                    $remDisplay = $netRemaining;
+                                                }
                                             @endphp
-                                            <input type="number" class="form-control text-center text-muted"
-                                                value="{{ $remaining }}" readonly
-                                                title="Original: {{ $original }} | Returned: {{ $returned }}">
+                                            <div class="text-center">
+                                                <span class="fw-bold text-dark fs-6">{{ $remDisplay }}</span>
+                                                <small class="text-muted d-block" style="font-size: 0.65rem;">Remaining Pieces: {{ $netRemaining }}</small>
+                                            </div>
                                             @if ($returned > 0)
-                                                <small class="d-block text-center text-danger"
-                                                    style="font-size: 0.65rem;">
-                                                    Returned: {{ $returned }}
-                                                </small>
+                                                <div class="mt-1 pt-1 border-top" style="font-size: 0.65rem;">
+                                                    <span class="text-danger">Returned: {{ $returned }}</span>
+                                                    <span class="text-muted ms-1">/ {{ $original }}</span>
+                                                </div>
                                             @endif
                                         </td>
 
@@ -401,7 +411,7 @@
                                         <td>
                                             <input type="text" name="qty_box[]"
                                                 class="form-control text-center quantity-box" value="0"
-                                                placeholder="0.0">
+                                                placeholder="0.0" {{ $netRemaining <= 0 ? 'readonly' : '' }}>
                                             <small class="text-muted" style="font-size: 0.7rem;">Format: Box.Piece</small>
                                         </td>
 
@@ -409,8 +419,8 @@
                                         <td>
                                             <input type="number" name="qty[]"
                                                 class="form-control text-center fw-bold text-primary quantity"
-                                                value="0" readonly min="0" max="{{ $remaining }}"
-                                                data-max="{{ $remaining }}" data-original="{{ $original }}"
+                                                value="0" readonly min="0" max="{{ $netRemaining }}"
+                                                data-max="{{ $netRemaining }}" data-original="{{ $original }}"
                                                 data-returned="{{ $returned }}">
                                         </td>
 

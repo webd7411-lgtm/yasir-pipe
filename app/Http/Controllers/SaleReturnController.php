@@ -255,9 +255,16 @@ class SaleReturnController extends Controller
                 'balance' => $netAmount - $totalPaid,
             ]);
 
-            // Update Sale Status (if full return)
+            // Update Sale Status (only if it is a full return)
             if ($sale) {
-                $sale->update(['sale_status' => 'returned']);
+                $totalSold = $sale->items->sum('total_pieces');
+                $totalReturned = SaleReturnItem::join('sale_returns', 'sale_returns.id', '=', 'sale_return_items.sale_return_id')
+                    ->where('sale_returns.sale_id', $sale->id)
+                    ->sum('sale_return_items.qty');
+                
+                if ($totalReturned >= $totalSold) {
+                    $sale->update(['sale_status' => 'returned']);
+                }
             }
 
             // Create Journal Voucher (Credit Note)

@@ -14,7 +14,16 @@
             <div class="card mb-3">
                 <div class="card-body">
                     <form id="stockFilterForm" class="row g-2 align-items-end">
-                        <div class="col-md-6">
+                        <div class="col-md-3">
+                            <label class="form-label">Category</label>
+                            <select name="category_id" id="category_id" class="form-control">
+                                <option value="all">-- All Categories --</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">Product</label>
                             <select name="product_id" id="product_id" class="form-control">
                                 <option value="all">-- All Products --</option>
@@ -52,8 +61,11 @@
                                     <th>Purchased Qty</th>
                                     <th>Purchased Amount</th>
                                     <th>Sold Qty</th>
+                                    <th>Returned Qty</th>
                                     <th>Sold Amount</th>
-                                    <th>Balance</th>
+                                    <th>Cartons</th>
+                                    <th>Loose Pcs</th>
+                                    <th>Current Stock (Pcs)</th>
                                     <th>Avg Price</th>
                                     <th>Stock Value</th>
                                 </tr>
@@ -63,7 +75,7 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <th colspan="10" class="text-end">Grand Stock Value:</th>
+                                    <th colspan="12" class="text-end">Grand Stock Value:</th>
                                     <th id="grandStockValue">0.00</th>
                                 </tr>
                             </tfoot>
@@ -96,7 +108,10 @@ $(document).ready(function() {
             { data: 'purchased' },
             { data: 'purchase_amount' },
             { data: 'sold' },
+            { data: 'returned_qty' },
             { data: 'sale_amount' },
+            { data: 'cartons' },
+            { data: 'loose' },
             { data: 'balance' },
             { data: 'average_price' },
             { data: 'stock_value' }
@@ -117,7 +132,10 @@ $(document).ready(function() {
                 purchased: parseFloat(r.purchased).toFixed(2),
                 purchase_amount: parseFloat(r.purchase_amount).toFixed(2),
                 sold: parseFloat(r.sold).toFixed(2),
+                returned_qty: parseFloat(r.returned_qty).toFixed(2),
                 sale_amount: parseFloat(r.sale_amount).toFixed(2),
+                cartons: r.cartons,
+                loose: parseFloat(r.loose).toFixed(2),
                 balance: parseFloat(r.balance).toFixed(2),
                 average_price: parseFloat(r.average_price).toFixed(2),
                 stock_value: parseFloat(r.stock_value).toFixed(2)
@@ -132,11 +150,16 @@ $(document).ready(function() {
 
     function fetchReport() {
         var productId = $('#product_id').val();
+        var categoryId = $('#category_id').val();
         $('#loader').show();
         $.ajax({
             url: "{{ route('report.item_stock.fetch') }}",
             type: "POST",
-            data: { _token: "{{ csrf_token() }}", product_id: productId },
+            data: { 
+                _token: "{{ csrf_token() }}", 
+                product_id: productId,
+                category_id: categoryId
+            },
             success: function(response) {
                 $('#loader').hide();
                 if (response.data && response.data.length) {
@@ -155,18 +178,23 @@ $(document).ready(function() {
 
     $('#btnExportCsv').on('click', function() {
         var productId = $('#product_id').val();
+        var categoryId = $('#category_id').val();
         $('#loader').show();
         $.ajax({
             url: "{{ route('report.item_stock.fetch') }}",
             type: "POST",
-            data: { _token: "{{ csrf_token() }}", product_id: productId },
+            data: { 
+                _token: "{{ csrf_token() }}", 
+                product_id: productId,
+                category_id: categoryId
+            },
             success: function(response) {
                 $('#loader').hide();
                 if (!response.data || !response.data.length) { alert('No data to export'); return; }
 
-                var csv = 'Item Code,Item Name,Initial Stock,Purchased Qty,Purchased Amount,Sold Qty,Sold Amount,Balance,Avg Price,Stock Value\n';
+                var csv = 'Item Code,Item Name,Initial Stock,Purchased Qty,Purchased Amount,Sold Qty,Sold Amount,Balance (Pcs),Cartons,Loose Pcs,Avg Price,Stock Value\n';
                 response.data.forEach(function(r){
-                    csv += `"${r.item_code}","${r.item_name}",${r.initial_stock},${r.purchased},${r.purchase_amount},${r.sold},${r.sale_amount},${r.balance},${r.average_price},${r.stock_value}\n`;
+                    csv += `"${r.item_code}","${r.item_name}",${r.initial_stock},${r.purchased},${r.purchase_amount},${r.sold},${r.sale_amount},${r.balance},${r.cartons},${r.loose},${r.average_price},${r.stock_value}\n`;
                 });
 
                 var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

@@ -255,13 +255,20 @@
                             <!-- VENDOR SELECT -->
                             <div class="mb-2">
                                 <label class="form-label fw-bold mb-1 text-muted small">Select Vendor</label>
-                                <select class="form-select select2" id="vendorSelect" name="vendor_id">
-                                    <option value="" selected disabled>Select Vendor</option>
-                                    @foreach ($Vendor as $v)
-                                        <option value="{{ $v->id }}" data-phone="{{ $v->phone }}"
-                                            data-address="{{ $v->address }}">{{ $v->name }}</option>
-                                    @endforeach
-                                </select>
+                                <div class="d-flex align-items-center gap-1">
+                                    <div class="flex-grow-1">
+                                        <select class="form-select select2" id="vendorSelect" name="vendor_id">
+                                            <option value="" selected disabled>Select Vendor</option>
+                                            @foreach ($Vendor as $v)
+                                                <option value="{{ $v->id }}" data-phone="{{ $v->phone }}"
+                                                    data-address="{{ $v->address }}">{{ $v->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addVendorModal" style="padding: 0.38rem 0.75rem;" title="Add New Vendor">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="mb-2">
@@ -274,14 +281,26 @@
                                 <textarea class="form-control" name="note" id="remarks" rows="2" placeholder="Optional notes..."></textarea>
                             </div>
 
-                            <div class="mb-2">
-                                <label class="form-label fw-bold text-muted small">Warehouse</label>
-                                <select name="warehouse_id" class="form-control">
-                                    @foreach ($Warehouse as $w)
-                                        <option value="{{ $w->id }}">{{ $w->warehouse_name }}</option>
-                                    @endforeach
-                                </select>
+                            <!-- VENDOR INFO CARD -->
+                            <div id="vendorInfoCard" class="mt-3 p-2 border rounded-2 bg-light d-none">
+                                <div class="fw-bold text-muted small mb-2 border-bottom pb-1">Vendor Details</div>
+                                <table class="table table-sm table-borderless mb-0" style="font-size:0.82rem">
+                                    <tr>
+                                        <td class="fw-bold text-muted py-0" style="width:90px">Mobile</td>
+                                        <td class="py-0" id="vi_mobile">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold text-muted py-0">Address</td>
+                                        <td class="py-0" id="vi_address">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold text-danger py-0">Prev. Bal</td>
+                                        <td class="py-0 text-danger fw-bold" id="vi_prev_bal">0.00</td>
+                                    </tr>
+                                </table>
                             </div>
+
+                            <input type="hidden" name="warehouse_id" value="{{ $Warehouse->first()->id ?? 1 }}">
 
                         </div>
                     </div>
@@ -386,18 +405,26 @@
                                             name="extra_cost" id="extraCost" value="0">
                                     </div>
                                 </div>
+                                <div class="row py-1 align-items-center">
+                                    <div class="col-7 text-danger fw-medium">Previous Balance</div>
+                                    <div class="col-5 text-end text-danger fw-bold"><span id="tPrev">0.00</span></div>
+                                </div>
                                 <hr class="my-2 border-secondary">
                                 <div class="row py-2">
-                                    <div class="col-6 fw-bold fs-5 text-primary">Net Payable</div>
-                                    <div class="col-6 text-end fw-bold fs-5 text-primary"><span id="tPayable">0.00</span>
-                                    </div>
-                                    <input type="hidden" name="net_amount" id="netAmountInput" value="0">
-                                    <input type="hidden" name="subtotal" id="subtotalInput" value="0">
+                                    <div class="col-6 fw-bold fs-5 text-primary">Current Bill</div>
+                                    <div class="col-6 text-end fw-bold fs-5 text-primary"><span id="tPayable">0.00</span></div>
                                 </div>
+                                <div class="row py-2 bg-warning-subtle rounded-2">
+                                    <div class="col-6 fw-bold fs-5 text-dark">Total Payable</div>
+                                    <div class="col-6 text-end fw-bold fs-5 text-dark"><span id="tTotalPayable">0.00</span></div>
+                                </div>
+                                <input type="hidden" name="net_amount" id="netAmountInput" value="0">
+                                <input type="hidden" name="subtotal" id="subtotalInput" value="0">
                             </div>
                         </div>
                     </div>
                 </div>
+
 
                 {{-- Buttons --}}
                 <div class="d-flex flex-wrap gap-3 justify-content-end p-3 mt-3 border-top bg-light rounded-bottom">
@@ -418,6 +445,45 @@
         </div>
     </div>
 
+    <!-- Quick Add Vendor Modal -->
+    <div class="modal fade" id="addVendorModal" tabindex="-1" aria-labelledby="addVendorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light border-bottom-0 pb-2">
+                    <h5 class="modal-title fw-bold" id="addVendorModalLabel">Add New Vendor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="quickAddVendorForm">
+                    @csrf
+                    <div class="modal-body pt-2">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted">Vendor Name</label>
+                            <input type="text" class="form-control" name="name" required placeholder="Enter vendor name">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold small text-muted">Phone Number</label>
+                                <input type="text" class="form-control" name="phone" placeholder="Optional">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold small text-muted">Opening Balance</label>
+                                <input type="number" step="0.01" class="form-control" name="opening_balance" value="0" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-bold small text-muted">Address</label>
+                            <textarea class="form-control" name="address" rows="2" placeholder="Optional"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 pt-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold" id="btnQuickSaveVendor">Save Vendor</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -428,6 +494,28 @@
             // Init Select2
             $('.select2').select2({
                 width: '100%'
+            });
+
+            // Vendor Select Logic
+            $('#vendorSelect').on('change', function() {
+                const vendorId = $(this).val();
+                if (!vendorId) {
+                    $('#vendorInfoCard').addClass('d-none');
+                    return;
+                }
+
+                // Fetch Vendor Info & Ledger
+                $.get(`/vendor/${vendorId}/ledger-json`, function(data) {
+                    // Update Info Card
+                    $('#vi_mobile').text(data.vendor.phone || '—');
+                    $('#vi_address').text(data.vendor.address || '—');
+                    $('#vi_prev_bal').text(parseFloat(data.current_balance).toFixed(2));
+                    $('#vendorInfoCard').removeClass('d-none');
+
+                    // Update Summary
+                    $('#tPrev').text(parseFloat(data.current_balance).toFixed(2));
+                    recalcAll();
+                });
             });
 
             // Add First Row
@@ -493,6 +581,7 @@
                     total += parseFloat($(this).val()) || 0;
                 });
                 $('#totalPaid').text(total.toFixed(2));
+                recalcAll(); // Trigger summary update
             }
 
 
@@ -598,6 +687,50 @@
                                 Swal.fire('Error', msg, 'error');
                             }
                         });
+                    }
+                });
+            });
+
+            // --- QUICK ADD VENDOR AJAX ---
+            $('#quickAddVendorForm').on('submit', function(e) {
+                e.preventDefault();
+                let $btn = $('#btnQuickSaveVendor');
+                let originalText = $btn.text();
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+                $.ajax({
+                    url: "{{ route('vendors.store.ajax') }}",
+                    method: "POST",
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        $btn.prop('disabled', false).text(originalText);
+                        
+                        // We assume the backend might not return the full vendor object directly in a predictable format
+                        // So reload the page is safest, OR if we can parse the name, we just do that.
+                        // Actually VendorController->store returns back()->with('success', ...) 
+                        // So it sends HTML of the previous page! Let's handle this carefully.
+                        // Wait, if it's returning a redirect, ajax will silently follow it and return HTML.
+                        // The safest logic here for a standard Laravel controller returning back() is to reload the window.
+                        // Or we can manually reload. 
+                        
+                        // For a seamless experience, we just reload window because appending HTML block is messy
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Vendor Added',
+                            text: 'The vendor has been created successfully.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        $btn.prop('disabled', false).text(originalText);
+                        let msg = 'Error adding vendor.';
+                        if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                            msg = Object.values(xhr.responseJSON.errors).flat().join('\n');
+                        }
+                        Swal.fire('Error', msg, 'error');
                     }
                 });
             });
@@ -898,6 +1031,13 @@
                 $('#tPayable').text(net.toFixed(2));
                 $('#netAmountInput').val(net.toFixed(2));
                 $('#totalAmount').text(subtotal.toFixed(2));
+
+                // NEW: Handle Previous Balance & Total Payable
+                const prevBal = parseFloat($('#tPrev').text()) || 0;
+                const totalPaid = parseFloat($('#totalPaid').text()) || 0;
+                const totalPayable = (prevBal + net) - totalPaid;
+                
+                $('#tTotalPayable').text(totalPayable.toFixed(2));
             }
         });
     </script>

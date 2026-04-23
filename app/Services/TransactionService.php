@@ -215,10 +215,31 @@ class TransactionService
             // 4. Create Voucher
             $this->voucherService->createVoucher($voucherData, $lines, auth()->id());
 
-            // 5. Update Legacy Vendor Ledger (Optional but recommended for consistency)
-            // You might want to move this inside BalanceService or similar if reused
-            // For now we rely on Journal Entries, but if you have a legacy table:
-            // \App\Models\VendorLedger::create(...)
+            // 5. Update Legacy Vendor Ledger (Critical for consistency)
+            if ($purchase->vendor_id) {
+                // Fetch latest ledger to get current balance
+                $lastEntry = \App\Models\VendorLedger::where('vendor_id', $purchase->vendor_id)
+                    ->lockForUpdate() 
+                    ->orderBy('id', 'desc')
+                    ->first();
+
+                $prevBal = $lastEntry ? $lastEntry->closing_balance : 0;
+                // Payment reduces payable balance (Debit Vendor)
+                // Note: Vendor balance in this system seems to be Credit-based (Payable = Positive)
+                $newBal = $prevBal - $totalPaid;
+
+                \Log::info("Legacy Ledger (Payment): Vendor #{$purchase->vendor_id}. Prev: {$prevBal} - Paid: {$totalPaid} = New: {$newBal}");
+
+                \App\Models\VendorLedger::updateOrCreate(
+                    ['vendor_id' => $purchase->vendor_id],
+                    [
+                        'admin_or_user_id' => auth()->id() ?? 1,
+                        'previous_balance' => $prevBal,
+                        'closing_balance' => $newBal,
+                        'opening_balance' => $lastEntry ? $lastEntry->opening_balance : 0,
+                    ]
+                );
+            }
 
             // Update Paid Amount in Purchase
             $purchase->paid_amount += $totalPaid;
@@ -263,7 +284,7 @@ class TransactionService
             // 3. Voucher Header
             // Using TYPE_PAYMENT so it appears in 'all_Payment_vochers' listing as requested
             $voucherData = [
-                'voucher_type' => \App\Models\VoucherMaster::TYPE_PAYMENT, 
+                'voucher_type' => \App\Models\VoucherMaster::TYPE_JOURNAL, 
                 'date' => $purchase->purchase_date ? \Carbon\Carbon::parse($purchase->purchase_date)->format('Y-m-d') : now()->format('Y-m-d'),
                 'status' => \App\Models\VoucherMaster::STATUS_POSTED,
                 'party_type' => \App\Models\Vendor::class,

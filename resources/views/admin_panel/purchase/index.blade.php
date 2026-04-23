@@ -146,7 +146,7 @@
                                                 @endif
 
                                                 @if ($purchase->has_partial_return)
-                                                    <br><small class="badge bg-warning text-dark mt-1">Partial
+                                                    <br><small class="badge bg-danger text-white mt-1"><i class="fas fa-undo-alt me-1"></i> Partial
                                                         Return</small>
                                                 @elseif($purchase->is_fully_returned)
                                                     <br><small class="badge bg-danger mt-1">Fully Returned</small>
@@ -164,8 +164,16 @@
                                                     <ul
                                                         class="dropdown-menu dropdown-menu-right border-0 shadow-lg rounded-3">
 
+                                                        @can('purchases.edit')
+                                                            <li>
+                                                                <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                                                                    href="{{ route('purchase.edit', $purchase->id) }}">
+                                                                    <i class="fas fa-edit text-primary fa-fw"></i> Edit
+                                                                </a>
+                                                            </li>
+                                                        @endcan
+
                                                         @if ($purchase->status_purchase == 'draft')
-                                                            {{-- CONFIRM (Draft only) --}}
                                                             @can('purchases.create')
                                                                 <li>
                                                                     <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-success confirm-purchase-btn"
@@ -176,17 +184,6 @@
                                                                 </li>
                                                                 <li>
                                                                     <hr class="dropdown-divider">
-                                                                </li>
-                                                            @endcan
-                                                        @endif
-
-                                                        @if ($purchase->status_purchase == 'draft')
-                                                            @can('purchases.edit')
-                                                                <li>
-                                                                    <a class="dropdown-item d-flex align-items-center gap-2 py-2"
-                                                                        href="{{ route('purchase.edit', $purchase->id) }}">
-                                                                        <i class="fas fa-edit text-primary fa-fw"></i> Edit
-                                                                    </a>
                                                                 </li>
                                                             @endcan
                                                         @endif

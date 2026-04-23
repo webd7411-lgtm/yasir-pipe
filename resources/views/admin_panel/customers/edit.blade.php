@@ -191,46 +191,51 @@
                             <input type="text" class="modern-control bg-light" name="customer_id"
                                 value="{{ $customer->customer_id }}" readonly>
                         </div>
-                        <div class="input-group-modern" style="grid-column: span 3;">
+                        <div class="input-group-modern" style="grid-column: span 2;">
                             <label class="modern-label">Customer Type <span class="text-danger">*</span></label>
                             <select class="modern-control" name="customer_type" required>
                                 <option value="Main Customer" {{ $customer->customer_type == 'Main Customer' ? 'selected' : '' }}>Main Customer</option>
                                 <option value="Walking Customer" {{ $customer->customer_type == 'Walking Customer' ? 'selected' : '' }}>Walking Customer</option>
                             </select>
                         </div>
-                        <div class="input-group-modern" style="grid-column: span 4;">
+                        <div class="input-group-modern" style="grid-column: span 3;">
                             <label class="modern-label">Full Name <span class="text-danger">*</span></label>
                             <input type="text" class="modern-control" name="customer_name" required
                                 value="{{ $customer->customer_name }}" placeholder="Customer Name">
                         </div>
-                        <div class="input-group-modern" style="grid-column: span 3;">
+                        <div class="input-group-modern" style="grid-column: span 2;">
                             <label class="modern-label">Mobile</label>
                             <input type="text" class="modern-control" name="mobile" placeholder="0300-1234567"
                                 value="{{ $customer->mobile }}">
                         </div>
+                        <div class="input-group-modern" style="grid-column: span 3;">
+                            <label class="modern-label">Region (Zone)</label>
+                            <select class="modern-control" name="zone">
+                                <option value="">-- Select Zone --</option>
+                                @foreach($zones as $z)
+                                    <option value="{{ $z->id }}" {{ $customer->zone == $z->id ? 'selected' : '' }}>{{ $z->zone }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                        <!-- Address spans full width -->
-                        <div class="input-group-modern" style="grid-column: span 12;">
+                        <!-- Financials / Address Line 2 -->
+                        <div class="input-group-modern" style="grid-column: span 3;">
                             <label class="modern-label">Address</label>
                             <input type="text" class="modern-control" name="address"
                                 placeholder="Shop No, Street Area, City"
                                 value="{{ $customer->address }}">
                         </div>
-
-                        <!-- Section 2: Financials -->
-                        <div class="section-label">Financials</div>
-
                         <div class="input-group-modern" style="grid-column: span 3;">
                             <label class="modern-label text-danger">Opening Balance (Dr)</label>
                             <input type="number" step="0.01" class="modern-control" name="opening_balance"
                                 value="{{ $customer->opening_balance ?? 0 }}" style="border-color: #fca5a5; background: #fff1f2;">
                         </div>
                         <div class="input-group-modern" style="grid-column: span 3;">
-                            <label class="modern-label text-success">Credit Limit <small class="text-muted fw-normal">(0 = Unlimited)</small></label>
+                            <label class="modern-label text-success">Credit Limit <small class="text-muted fw-normal">(0 = Ulmtd)</small></label>
                             <input type="number" step="0.01" class="modern-control" name="balance_range"
                                 value="{{ $customer->balance_range ?? 0 }}" style="border-color: #86efac; background: #f0fdf4;">
                         </div>
-                        <div class="input-group-modern" style="grid-column: span 4;">
+                        <div class="input-group-modern" style="grid-column: span 3;">
                             <label class="modern-label text-primary">Payment Reminder Day</label>
                             <select class="modern-control" name="reminder_day" style="border-color: #93c5fd; background: #eff6ff;">
                                 <option value="">No Reminder</option>
@@ -242,7 +247,6 @@
                                 <option value="Saturday" {{ $customer->reminder_day == 'Saturday' ? 'selected' : '' }}>Saturday</option>
                                 <option value="Sunday" {{ $customer->reminder_day == 'Sunday' ? 'selected' : '' }}>Sunday</option>
                             </select>
-                            <small class="text-muted" style="font-size: 0.65rem;">Schedule a weekly notification on this day</small>
                         </div>
 
                         {{-- ============ COMMENTED OUT FIELDS ============ --}}
@@ -272,13 +276,7 @@
                         </div> --}}
 
                         {{-- Zone --}}
-                        {{-- <div class="input-group-modern" style="grid-column: span 3;">
-                            <label class="modern-label">Zone</label>
-                            <select class="modern-control" name="zone">
-                                <option value="Hyderabad" {{ $customer->zone == 'Hyderabad' ? 'selected' : '' }}>Hyderabad</option>
-                                <option value="Karachi" {{ $customer->zone == 'Karachi' ? 'selected' : '' }}>Karachi</option>
-                            </select>
-                        </div> --}}
+                        {{-- Zone field moved to basic info section --}}
 
                         {{-- Contact Person --}}
                         {{-- <div class="input-group-modern" style="grid-column: span 3;">

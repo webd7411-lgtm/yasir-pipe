@@ -386,17 +386,19 @@
                         {{-- Type toggle --}}
                         <div class="mb-2">
                             <label class="form-label fw-bold mb-1 d-block">Type</label>
-                            <div class="btn-group" role="group" id="partyTypeGroup">
-                                <input type="radio" class="btn-check" name="partyType" id="typeCustomers"
-                                    value="Main Customer" checked>
-                                <label class="btn btn-outline-primary btn-sm" for="typeCustomers">Customers</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="btn-group" role="group" id="partyTypeGroup">
+                                    <input type="radio" class="btn-check" name="partyType" id="typeCustomers"
+                                        value="Main Customer" checked>
+                                    <label class="btn btn-outline-primary btn-sm" for="typeCustomers">Customers</label>
 
-                                <input type="radio" class="btn-check" name="partyType" id="typeWalkin"
-                                    value="Walking Customer">
-                                <label class="btn btn-outline-primary btn-sm" for="typeWalkin">Walk-in</label>
-
-                                {{-- <input type="radio" class="btn-check" name="partyType" id="typeVendors" value="vendor">
-        <label class="btn btn-outline-primary btn-sm" for="typeVendors">Vendors</label> --}}
+                                    <input type="radio" class="btn-check" name="partyType" id="typeWalkin"
+                                        value="Walking Customer">
+                                    <label class="btn btn-outline-primary btn-sm" for="typeWalkin">Walk-in</label>
+                                </div>
+                                <button type="button" class="mb-2 btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal" title="Add New Customer">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
                             </div>
                         </div>
 
@@ -452,7 +454,7 @@
 
                         <div class="mb-2">
                             <label class="form-label fw-bold">Remarks</label>
-                            <textarea class="form-control" id="remarks"></textarea>
+                            <textarea class="form-control" name="reference" id="remarks"></textarea>
                         </div>
 
                         {{-- Hidden fields for backend --}}
@@ -483,9 +485,9 @@
                                         <th class="col-qty qty-header">Total Qty</th>
                                         <th class="col-qty pack-size-col">Pices Box</th>
                                         <th class="col-pieces boxes-col">total pieces</th>
+                                        <th class="col-price-p price-pc-header">Retail Price</th>
                                         <th class="col-disc">Disc %</th>
                                         <th class="col-disc-amt">Disc Amt</th>
-                                        <th class="col-price-p price-pc-header">Retail Price</th>
                                         <th class="col-amount">Amount</th>
                                         <th class="col-action">—</th>
                                     </tr>
@@ -600,8 +602,57 @@
                     <button type="button" class="btn btn-sm btn-secondary" id="btnPrint"><i class="fas fa-print me-1"></i>Print A4 Half</button>
                     <button type="button" class="btn btn-sm btn-outline-info" id="btnEstimate"><i class="fas fa-file-invoice me-1"></i>Estimate</button>
                     <button type="button" class="btn btn-sm btn-secondary" id="btnPrint2"><i class="fas fa-receipt me-1"></i>Print Thermal</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="btnDcThermal"><i class="fas fa-truck me-1"></i>DC Thermal</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Add Customer Modal -->
+    <div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCustomerModalLabel">
+                        <i class="fas fa-user-plus text-primary me-2"></i>New Customer
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="ajaxAddCustomerForm">
+                        @csrf
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Customer Type <span class="text-danger">*</span></label>
+                                <select class="form-select" name="customer_type" required>
+                                    <option value="Main Customer">Main Customer</option>
+                                    <option value="Walking Customer">Walking Customer</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="customer_name" required placeholder="Customer Name">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Mobile</label>
+                                <input type="text" class="form-control" name="mobile" placeholder="0300-1234567">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Opening Balance</label>
+                                <input type="number" step="0.01" class="form-control" name="opening_balance" value="0">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Address</label>
+                                <input type="text" class="form-control" name="address" placeholder="Address">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveAjaxCustomer">Save Customer</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -786,6 +837,62 @@
             });
             $('#btnPrint2').on('click', function() {
                 ensureSaved().then(id => window.open('{{ url('sales') }}/' + id + '/recepit', '_blank'));
+            });
+            $('#btnDcThermal').on('click', function() {
+                ensureSaved().then(id => window.open('{{ url('sales') }}/' + id + '/dc-thermal', '_blank'));
+            });
+
+            // AJAX Customer Submit
+            $('#btnSaveAjaxCustomer').on('click', function() {
+                let form = $('#ajaxAddCustomerForm');
+                if (!form[0].checkValidity()) {
+                    form[0].reportValidity();
+                    return;
+                }
+                
+                let btn = $(this);
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+                
+                $.ajax({
+                    url: '{{ route('customers.store') }}',
+                    type: 'POST',
+                    data: form.serialize(),
+                    success: function(res) {
+                        btn.prop('disabled', false).text('Save Customer');
+                        if (res.success) {
+                            $('#addCustomerModal').modal('hide');
+                            form[0].reset();
+                            
+                            // Make sure UI toggles map to the new customer's type
+                            if (res.customer.customer_type === 'Walking Customer') {
+                                $('#typeWalkin').prop('checked', true).trigger('change');
+                            } else {
+                                $('#typeCustomers').prop('checked', true).trigger('change');
+                            }
+                            
+                            // Auto select new customer
+                            let newOption = new Option(res.customer.customer_id + ' — ' + res.customer.customer_name, res.customer.id, true, true);
+                            $('#customerSelect').append(newOption).trigger('change');
+                            
+                            // trigger select2 API selection to load customer details like Prev Bal
+                            $('#customerSelect').trigger({
+                                type: 'select2:select',
+                                params: {
+                                    data: {
+                                        id: res.customer.id,
+                                        text: res.customer.customer_id + ' — ' + res.customer.customer_name
+                                    }
+                                }
+                            });
+                            
+                            showAlert('success', 'Customer added successfully!');
+                        }
+                    },
+                    error: function(err) {
+                        btn.prop('disabled', false).text('Save Customer');
+                        showAlert('error', 'Error adding customer. Check inputs.');
+                    }
+                });
             });
         });
     </script>

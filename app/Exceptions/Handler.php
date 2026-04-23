@@ -46,6 +46,17 @@ class Handler extends ExceptionHandler
     //     return response()->view('errors.custom', ['code' => 500], 500);
     // }
     
+    public function render($request, Throwable $exception)
+    {
+        if ($exception instanceof \Illuminate\Session\TokenMismatchException) {
+            return redirect()->back()
+                ->withInput($request->except('_token'))
+                ->with('error', 'Your session has expired. Please try again.');
+        }
+
+        return parent::render($request, $exception);
+    }
+
     /**
      * Register the exception handling callbacks for the application.
      */

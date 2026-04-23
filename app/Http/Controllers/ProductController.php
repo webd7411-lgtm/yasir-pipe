@@ -195,6 +195,7 @@ class ProductController extends Controller
             'unit',
             'brand',
         ])
+            ->withSum('warehouseStocks', 'total_pieces')
             ->latest()
             ->paginate(10);
 
@@ -622,13 +623,14 @@ class ProductController extends Controller
         }
 
         DB::transaction(function () use ($request, $id, $userId, $imagePath, $mode, $height, $width, $piecesPerBox,
+            $boxesQuantity, $loosePieces, $pieceQuantity,
             $totalM2, $pricePerM2, $purchasePricePerM2, $salePricePerBox, $purchasePricePerPiece, $piecesPerM2) {
 
             Product::where('id', $id)->update([
                 'creater_id' => $userId,
                 'category_id' => $request->category_id,
                 'sub_category_id' => $request->sub_category_id,
-                'item_code' => $request->item_code,
+                'item_code' => $request->item_code ?? Product::where('id', $id)->value('item_code'),
                 'item_name' => $request->product_name,
                 'barcode_path' => $request->barcode_path ?? rand(100000000000, 999999999999),
                 'unit_id' => $request->unit,
@@ -669,18 +671,43 @@ class ProductController extends Controller
             // BOM re-save logic removed as table does not exist
             // DB::table('product_boms')->where('product_id', $id)->delete();
 
+            // ✅ Update WarehouseStock when stock quantities change
+            $warehouseStock = \App\Models\WarehouseStock::where('product_id', $id)->first();
+            $newTotalPieces = 0;
+            if ($mode === 'by_cartons') {
+                $newTotalPieces = ($piecesPerBox * $boxesQuantity) + $loosePieces;
+            } elseif ($mode === 'by_size') {
+                $newTotalPieces = $boxesQuantity * $piecesPerBox;
+            } elseif ($mode === 'by_pieces') {
+                $newTotalPieces = $pieceQuantity;
+            }
+
+            if ($warehouseStock) {
+                $warehouseStock->quantity      = $boxesQuantity;
+                $warehouseStock->total_pieces  = $newTotalPieces;
+                $warehouseStock->save();
+            } else {
+                \App\Models\WarehouseStock::create([
+                    'warehouse_id' => 1,
+                    'product_id'   => $id,
+                    'quantity'     => $boxesQuantity,
+                    'total_pieces' => $newTotalPieces,
+                    'remarks'      => 'Updated via edit',
+                ]);
+            }
+
+            // Manual stock adjustment (extra on top)
             if ($request->filled('stock_adjust') && (float) $request->stock_adjust != 0) {
                 $adjQty = (float) $request->stock_adjust;
 
                 StockMovement::create([
                     'product_id' => $id,
-                    'type' => 'adjustment',
-                    'qty' => $adjQty,
-                    'ref_type' => 'ADJ',
-                    'note' => 'Manual stock adjustment',
+                    'type'       => 'adjustment',
+                    'qty'        => $adjQty,
+                    'ref_type'   => 'ADJ',
+                    'note'       => 'Manual stock adjustment',
                 ]);
 
-                // Update actual stock
                 $this->upsertStocks($id, $adjQty, 1, 1);
             }
         });
@@ -695,10 +722,24 @@ class ProductController extends Controller
     // ===== Edit view =====
     public function edit($id)
     {
-        $product = Product::with('category_relation', 'sub_category_relation', 'unit', 'brand')->findOrFail($id);
+        $product = Product::with('category_relation', 'sub_category_relation', 'unit', 'brand', 'warehouseStocks')
+            ->findOrFail($id);
         $categories = Category::all();
         $subcategories = SubCategory::all();
         $brands = Brand::all();
+
+        // Calculate current stock from WarehouseStock (the real source of truth)
+        $totalPieces = $product->warehouseStocks->sum('total_pieces');
+        $ppb = $product->pieces_per_box > 0 ? $product->pieces_per_box : 1;
+
+        if ($product->size_mode === 'by_cartons' || $product->size_mode === 'by_size') {
+            $product->boxes_quantity = (int) floor($totalPieces / $ppb);
+            $product->loose_pieces   = (int) ($totalPieces % $ppb);
+        } elseif ($product->size_mode === 'by_pieces') {
+            $product->piece_quantity  = (int) $totalPieces;
+            $product->boxes_quantity  = 0;
+            $product->loose_pieces    = 0;
+        }
 
         return view('admin_panel.product.edit', compact('product', 'categories', 'subcategories', 'brands'));
     }

@@ -375,7 +375,12 @@
 
                         <td class="text-end" style="vertical-align: middle; color: #c0392b;">
                             @if ($item->item_discount > 0)
-                                {{ number_format($item->item_discount, 2) }}
+                                @php
+                                    $grossLine = $item->line_total + $item->item_discount;
+                                    $discPercent = $grossLine > 0 ? ($item->item_discount / $grossLine) * 100 : 0;
+                                @endphp
+                                <div style="font-size: 10px; line-height: 1;">{{ number_format($discPercent, 1) }}%</div>
+                                <div style="font-size: 11px; font-weight: bold;">{{ number_format($item->item_discount, 2) }}</div>
                             @else
                                 -
                             @endif
@@ -415,7 +420,13 @@
                         @if ($purchase->discount > 0)
                             <tr>
                                 <td>Discount</td>
-                                <td class="text-end text-danger">-{{ number_format($purchase->discount, 2) }}</td>
+                                <td class="text-end text-danger">
+                                    @php
+                                        $billDiscPercent = $purchase->subtotal > 0 ? ($purchase->discount / $purchase->subtotal) * 100 : 0;
+                                    @endphp
+                                    <span style="font-size: 10px;" class="me-1">({{ number_format($billDiscPercent, 1) }}%)</span>
+                                    -{{ number_format($purchase->discount, 2) }}
+                                </td>
                             </tr>
                         @endif
                         <tr class="total-row" style="background-color: #e9ecef;">
@@ -427,9 +438,15 @@
                             <td class="text-end text-success">{{ number_format($purchase->paid_amount, 2) }}</td>
                         </tr>
                         <tr>
-                            <td class="fw-bold">Balance</td>
+                            <td class="fw-bold">Bill Due</td>
                             <td class="text-end fw-bold">
                                 {{ number_format($purchase->net_amount - $purchase->paid_amount, 2) }}</td>
+                        </tr>
+                        <tr style="border-top: 1px solid #000;">
+                            <td class="fw-bold text-danger">Total Closing Bal</td>
+                            <td class="text-end fw-bold text-danger">
+                                {{ number_format($vendor_balance, 2) }}
+                            </td>
                         </tr>
                     </table>
                 </div>

@@ -1250,9 +1250,23 @@
             // Search permissions
             $('#permSearch').on('input', function() {
                 var q = $(this).val().toLowerCase();
-                $('.perm-item-wrapper').each(function() {
-                    var name = $(this).data('name') || '';
-                    $(this).toggle(name.indexOf(q) !== -1);
+                
+                $('.permission-group').each(function() {
+                    var $group = $(this);
+                    var moduleName = $group.data('module').toLowerCase();
+                    var titleText = $group.find('.module-name').text().toLowerCase();
+                    var hasMatchingItem = false;
+
+                    $group.find('.perm-item-wrapper').each(function() {
+                        var itemName = $(this).data('name') || '';
+                        var isMatch = itemName.indexOf(q) !== -1 || moduleName.indexOf(q) !== -1 || titleText.indexOf(q) !== -1;
+                        $(this).toggle(isMatch);
+                        if (isMatch) hasMatchingItem = true;
+                    });
+
+                    // Hide the whole group if no matching items and heading doesn't match
+                    var headingMatch = moduleName.indexOf(q) !== -1 || titleText.indexOf(q) !== -1;
+                    $group.toggle(hasMatchingItem || headingMatch);
                 });
             });
 

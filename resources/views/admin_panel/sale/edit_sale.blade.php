@@ -455,9 +455,9 @@
                                         <th class="col-qty qty-header">Total Boxes</th>
                                         <th class="col-qty pack-size-col">Pack Size</th>
                                         <th class="col-pieces boxes-col">Pieces</th>
+                                        <th class="col-price-p price-pc-header">Retail Price</th>
                                         <th class="col-disc">Disc %</th>
                                         <th class="col-disc-amt">Disc Amt</th>
-                                        <th class="col-price-p price-pc-header">Retail Price</th>
                                         <th class="col-amount">Amount</th>
                                         <th class="col-action">—</th>
                                     </tr>
@@ -619,6 +619,20 @@
                                                         tabindex="-1">
                                                 </td>
 
+                                                <!-- Price -->
+                                                <td class="col-price-p">
+                                                    <input type="text"
+                                                        class="form-control visible-price text-end input-readonly"
+                                                        name="visible_price[]" readonly
+                                                        value="{{ $item->product->sale_price_per_box ?? 0 }}"
+                                                        tabindex="-1">
+                                                    <input type="hidden" class="price-per-piece"
+                                                        name="price_per_piece[]"
+                                                        value="{{ $item->product->sale_price_per_box ?? 0 }}">
+                                                    <input type="hidden" class="retail-price"
+                                                        value="{{ $item->product->retail_price ?? 0 }}">
+                                                </td>
+
                                                 <!-- Discount -->
                                                 <td class="col-disc">
                                                     <div class="discount-wrapper">
@@ -633,20 +647,6 @@
                                                 <!-- Disc Amt -->
                                                 <td class="col-disc-amt">
                                                     <input type="text" class="form-control discount-amount text-end">
-                                                </td>
-
-                                                <!-- Price -->
-                                                <td class="col-price-p">
-                                                    <input type="text"
-                                                        class="form-control visible-price text-end input-readonly"
-                                                        name="visible_price[]" readonly
-                                                        value="{{ $item->product->sale_price_per_box ?? 0 }}"
-                                                        tabindex="-1">
-                                                    <input type="hidden" class="price-per-piece"
-                                                        name="price_per_piece[]"
-                                                        value="{{ $item->product->sale_price_per_box ?? 0 }}">
-                                                    <input type="hidden" class="retail-price"
-                                                        value="{{ $item->product->retail_price ?? 0 }}">
                                                 </td>
 
                                                 <!-- Amount -->
@@ -777,6 +777,7 @@
                     <button type="button" class="btn btn-sm btn-secondary" id="btnPrint"><i class="fas fa-print me-1"></i>Print A4 Half</button>
                     <button type="button" class="btn btn-sm btn-outline-info" id="btnEstimate"><i class="fas fa-file-invoice me-1"></i>Estimate</button>
                     <button type="button" class="btn btn-sm btn-secondary" id="btnPrint2"><i class="fas fa-receipt me-1"></i>Print Thermal</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="btnDcThermal"><i class="fas fa-truck me-1"></i>DC Thermal</button>
                 </div>
             </form>
             @endsection
@@ -846,6 +847,9 @@
                     });
                     $('#btnPrint2').on('click', function() {
                         ensureSaved().then(id => window.open('{{ url('sales') }}/' + id + '/recepit', '_blank'));
+                    });
+                    $('#btnDcThermal').on('click', function() {
+                        ensureSaved().then(id => window.open('{{ url('sales') }}/' + id + '/dc-thermal', '_blank'));
                     });
 
                 </script>

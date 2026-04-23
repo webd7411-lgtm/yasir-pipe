@@ -240,21 +240,15 @@
             <!-- Left Box: Customer Info -->
             <div class="col-4">
                 <div class="info-box">
-                    <div class="info-box-header">Customer </div>
-                     @if($sale->customer_relation?->customer_id)
+                    <div class="info-box-header">Customer</div>
+                    @if($sale->customer_relation?->customer_id)
                     <div style="font-size: 11px; color: #555;">
                         Code: <strong>{{ $sale->customer_relation->customer_id }}</strong>
                     </div>
                     @endif
-                    <div style="font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        {{ $sale->customer_relation->customer_name ?? 'Walking Customer' }}
-                    </div>
-                   
-                    <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px;">
-                        {{ $sale->customer_relation->address ?? '' }}</div>
-                    <div class="text-muted small" style="font-size: 11px;">
-                        Mob: {{ $sale->customer_relation->mobile ?? '' }}
-                    </div>
+                    <div><span class="info-label">Name:</span> <strong>{{ $sale->customer_relation->customer_name ?? 'Walking Customer' }}</strong></div>
+                    <div><span class="info-label">Address:</span> <span style="font-size:11px;">{{ $sale->customer_relation->address ?? '—' }}</span></div>
+                    <div><span class="info-label">Mob:</span> <span style="font-size:11px;">{{ $sale->customer_relation->mobile ?? '—' }}</span></div>
                 </div>
             </div>
 
@@ -270,7 +264,6 @@
                         @endphp
                         <strong>{{ $officer?->name ?? auth()->user()->name ?? 'Admin' }}</strong>
                     </div>
-                    <!-- <div><span class="info-label">Type:</span> {{ $sale->sale_status ?? 'Final' }}</div> -->
                 </div>
             </div>
 
@@ -280,7 +273,12 @@
                     <div class="info-box-header">Reference</div>
                     <div><span class="info-label">Inv #:</span> <strong>{{ $sale->id }}</strong></div>
                     <div><span class="info-label">Date:</span> {{ $sale->created_at->format('d-m-Y') }}</div>
-                    <div><span class="info-label">Ref:</span> {{ $sale->reference ?? '-' }}</div>
+                    @if($sale->reference)
+                    <div style="margin-top:4px; padding-top:4px; border-top:1px dashed #ddd;">
+                        <span class="info-label">Remarks:</span>
+                        <span style="font-size:11px; color:#333;">{{ $sale->reference }}</span>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -427,6 +425,8 @@
                                 <span class="text-danger">{{ number_format($discAmt, 2) }}</span>
                                 @if ($discPct > 0)
                                     <br><small class="text-muted">({{ number_format($discPct, 1) }}%)</small>
+                                @else
+                                    <br><small class="text-muted">PKR</small>
                                 @endif
                             @else
                                 <span class="text-muted">—</span>

@@ -181,6 +181,27 @@ class HomeController extends Controller
             $vendorPaymentsAll = DB::table('vendor_payments')->sum('amount');
             $paymentOutOverall = $v2PaymentsAll + $v1PaymentsAll + $v1ExpensesAll + $vendorPaymentsAll;
 
+            // ===== TOP 10 PRODUCTS & CUSTOMERS (Needs Sales Permission) =====
+            $topProducts = collect();
+            $topCustomers = collect();
+
+            if (Auth::user()->can('sales.view')) {
+                $topProducts = DB::table('sale_items')
+                    ->select('product_name', DB::raw('SUM(qty) as total_qty'), DB::raw('SUM(total) as total_revenue'))
+                    ->groupBy('product_name')
+                    ->orderByDesc('total_qty')
+                    ->limit(10)
+                    ->get();
+
+                $topCustomers = DB::table('sales')
+                    ->join('customers', 'sales.customer_id', '=', 'customers.id')
+                    ->select('customers.customer_name', DB::raw('COUNT(sales.id) as total_orders'), DB::raw('SUM(sales.total_net) as total_sales'))
+                    ->groupBy('customers.id', 'customers.customer_name')
+                    ->orderByDesc('total_sales')
+                    ->limit(10)
+                    ->get();
+            }
+
             return view('admin_panel.dashboard', compact(
                 'categoryCount',
                 'subcategoryCount',
@@ -196,7 +217,9 @@ class HomeController extends Controller
                 'paymentInMonth',
                 'paymentInOverall',
                 'paymentOutMonth',
-                'paymentOutOverall'
+                'paymentOutOverall',
+                'topProducts',
+                'topCustomers'
             ));
         } else {
             return redirect()->back()->with('error', 'Unauthorized access');

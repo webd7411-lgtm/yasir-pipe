@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\CustomerLedger;
 use App\Models\CustomerPayment;
 use App\Models\SalesOfficer;
+use App\Models\Zone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -99,14 +100,15 @@ class CustomerController extends Controller
     {
         $latestId = 'CUST-'.str_pad(Customer::max('id') + 1, 4, '0', STR_PAD_LEFT);
         $salesOfficers = SalesOfficer::orderBy('name')->get();
+        $zones = Zone::orderBy('zone')->get();
 
-        return view('admin_panel.customers.create', compact('latestId', 'salesOfficers'));
+        return view('admin_panel.customers.create', compact('latestId', 'salesOfficers', 'zones'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'customer_id'      => 'required|unique:customers',
+            'customer_id'      => 'nullable|unique:customers',
             'customer_name'    => 'nullable',
             'customer_name_ur' => 'nullable',
             'cnic'             => 'nullable',
@@ -127,6 +129,10 @@ class CustomerController extends Controller
             'reminder_day'     => 'nullable|string',
         ]);
 
+        if (empty($data['customer_id'])) {
+            $data['customer_id'] = 'CUST-'.str_pad(\App\Models\Customer::max('id') + 1, 4, '0', STR_PAD_LEFT);
+        }
+
         // Customer create
         $customer = Customer::create($data);
 
@@ -138,8 +144,35 @@ class CustomerController extends Controller
                 'customer_id' => $customer->id,
                 'admin_or_user_id' => Auth::id(),
                 'previous_balance' => 0,
-                'opening_balance' => $opening,           // ✅ yahan set karna zaroori hai
+                'opening_balance' => $opening,
                 'closing_balance' => $opening,
+            ]);
+
+            // ✅ Record Journal Entry for Opening Balance (Accounting)
+            try {
+                $balanceService = app(\App\Services\BalanceService::class);
+                $journalService = app(\App\Services\JournalEntryService::class);
+                $arId = $balanceService->getAccountsReceivableId();
+
+                $journalService->recordEntry(
+                    $customer,
+                    $arId,
+                    $opening, // Debit (Asset)
+                    0,        // Credit
+                    "Opening Balance",
+                    now()->format('Y-m-d'),
+                    $customer
+                );
+            } catch (\Exception $e) {
+                \Log::error("Customer Opening Balance Journal Error: " . $e->getMessage());
+            }
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer created successfully.',
+                'customer' => $customer
             ]);
         }
 
@@ -149,8 +182,10 @@ class CustomerController extends Controller
     public function edit($id)
     {
         $customer = Customer::findOrFail($id);
+        $salesOfficers = SalesOfficer::orderBy('name')->get();
+        $zones = Zone::orderBy('zone')->get();
 
-        return view('admin_panel.customers.edit', compact('customer'));
+        return view('admin_panel.customers.edit', compact('customer', 'salesOfficers', 'zones'));
     }
 
     public function update(Request $request, $id)

@@ -59,14 +59,8 @@
                                 }
 
                                 // Check for returns
-                                if ($sale->returns) {
-                                    if ($sale->returns->where('return_status', 'approved')->isNotEmpty()) {
-                                        $status .=
-                                            '<br><span class="badge bg-warning text-dark mt-1">Return Approved</span>';
-                                    } elseif ($sale->returns->where('return_status', 'pending')->isNotEmpty()) {
-                                        $status .=
-                                            '<br><span class="badge bg-info text-dark mt-1">Return Pending</span>';
-                                    }
+                                if ($sale->returns && $sale->returns->count() > 0) {
+                                    $status .= '<br><span class="badge bg-danger mt-1"><i class="fas fa-undo-alt me-1"></i> Partial Return</span>';
                                 }
                             @endphp
                             <tr>
@@ -98,7 +92,9 @@
                                             <a href="{{ route('sales.invoice', ['id' => $sale->id, 'type' => 'estimate']) }}" target="_blank"
                                                 class="btn btn-sm btn-outline-info">Estimate</a>
                                             <a href="{{ route('sales.dc', $sale->id) }}" target="_blank"
-                                                class="btn btn-sm btn-secondary text-white">DC</a>
+                                                class="btn btn-sm btn-warning text-white">DC</a>
+                                            <a href="{{ route('sales.dc_thermal', $sale->id) }}" target="_blank"
+                                                class="btn btn-sm btn-secondary text-white"><i class="fas fa-truck me-1"></i>DC Thermal</a>
                                             <a href="{{ route('sales.receipt', $sale->id) }}" target="_blank"
                                                 class="btn btn-sm btn-success text-white">Receipt</a>
 

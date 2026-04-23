@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thermal Receipt - {{ $sale->id }}</title>
+    <title>Thermal DC - {{ $sale->id }}</title>
     <style>
         /* Base Print Styles */
         @media print {
@@ -57,6 +57,17 @@
             letter-spacing: 1px;
             margin-bottom: 4px;
         }
+        
+        .dc-title {
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+            margin: 5px 0;
+            border: 1px solid #000;
+            padding: 2px;
+            border-radius: 3px;
+        }
 
         .company-info {
             font-size: 11px;
@@ -101,6 +112,7 @@
         .items-table td {
             padding: 4px 0;
             vertical-align: top;
+            border-bottom: 1px dotted #ccc;
         }
 
         .item-name {
@@ -117,48 +129,23 @@
         .text-end { text-align: right !important; }
         .text-center { text-align: center !important; }
 
-        /* Totals */
-        .totals-section {
-            font-size: 11px;
-            margin-top: 5px;
-        }
-
-        .tot-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 2px 0;
-        }
-
-        .tot-row.grand-total {
-            font-size: 14px;
-            font-weight: bold;
-            margin: 5px 0;
-            padding: 5px 0;
-            border-top: 2px solid #000;
-            border-bottom: 2px solid #000;
-        }
-
-        /* Balances */
-        .balance-section {
-            font-size: 11px;
-        }
-
         /* Footer */
         .footer {
             text-align: center;
-            margin-top: 15px;
+            padding: 15px 10px;
+            font-size: 14px;
+            color: #555;
+            border-top: 1px solid #ddd;
+            margin-top: 20px;
         }
 
         .footer p {
             font-size: 11px;
-            font-weight: bold;
+            margin: 5px 0;    
         }
-
-        .footer .soft-credit {
-            font-size: 9px;
-            color: #666;
-            margin-top: 5px;
-            font-weight: normal;
+        
+        .footer strong {
+            color: #000;
         }
 
         /* Controls */
@@ -188,8 +175,21 @@
         .remarks-box {
             font-size: 11px;
             font-style: italic;
-            text-align: center;
+            text-align: left;
             margin: 5px 0;
+        }
+        
+        .sign-box {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            font-size: 10px;
+            text-align: center;
+        }
+        .sign-line {
+            border-top: 1px solid #000;
+            width: 100px;
+            padding-top: 2px;
         }
     </style>
 </head>
@@ -197,7 +197,7 @@
 <body>
 
     <div class="print-controls no-print">
-        <a href="javascript:window.print()" class="btn btn-primary">🖨️ Print Receipt</a>
+        <a href="javascript:window.print()" class="btn btn-primary">🖨️ Print DC</a>
         <a href="{{ route('sale.index') }}" class="btn btn-secondary">← Back</a>
     </div>
 
@@ -209,26 +209,38 @@
             <div>Ph: 0327-9226901</div>
         </div>
 
+        <div class="dc-title">DELIVERY CHALLAN</div>
         <div class="divider"></div>
 
         <!-- Meta -->
         <div class="meta-info">
-            <span><strong>Inv #:</strong> {{ $sale->id }}</span>
+            <span><strong>DC #:</strong> {{ $sale->id }}</span>
             <span>{{ $sale->created_at->format('d-m-Y h:i A') }}</span>
         </div>
         <div class="meta-info">
-            <span><strong>Cust:</strong> {{ Str::limit($sale->customer_relation->customer_name ?? 'Walking Customer', 22) }}</span>
+            <span><strong>Deliver To:</strong> {{ Str::limit($sale->customer_relation->customer_name ?? 'Walking Customer', 20) }}</span>
         </div>
+        @if($sale->customer_relation?->address)
+        <div class="meta-info text-muted">
+            <span>{{ Str::limit($sale->customer_relation->address, 30) }}</span>
+        </div>
+        @endif
         @if (auth()->check())
-        <div class="meta-info">
-            <span><strong>User:</strong> {{ auth()->user()->name }}</span>
+        <div class="meta-info mt-1">
+            <span><strong>Maker:</strong> {{ auth()->user()->name }}</span>
         </div>
         @endif
         
         <!-- Remarks/Ref -->
         @if($sale->reference)
-        <div class="remarks-box" style="text-align: left;">
+        <div class="remarks-box">
             Remarks: {{ $sale->reference }}
+        </div>
+        @endif
+        
+        @if ($sale->return_note)
+        <div class="remarks-box" style="background:#f9f9f9; padding:3px; font-weight:bold;">
+            Note: {{ $sale->return_note }}
         </div>
         @endif
 
@@ -238,9 +250,8 @@
         <table class="items-table">
             <thead>
                 <tr>
-                    <th style="width: 50%;">Item Description</th>
-                    <th style="width: 15%;" class="text-center">Qty</th>
-                    <th style="width: 35%;" class="text-end">Amount</th>
+                    <th style="width: 70%;">Item Description</th>
+                    <th style="width: 30%;" class="text-end">Qty/Boxes</th>
                 </tr>
             </thead>
             <tbody>
@@ -250,102 +261,61 @@
                         $sizeMode = $item['size_mode'] ?? 'std';
                         $totalPieces = (int) $item['total_pieces'];
 
-                        // Display quantity string
-                        $qtyDisplay = $totalPieces;
-                        if ($sizeMode == 'by_cartons' || $sizeMode == 'by_size') {
-                            $piecesPerBox = (int)($item['pieces_per_box'] ?? 1);
-                            if ($piecesPerBox <= 0) $piecesPerBox = 1;
-                            $boxes = floor($totalPieces / $piecesPerBox);
-                            $loose = $totalPieces % $piecesPerBox;
+                        // Same layout logic from existing saledc formatting
+                        $piecesPerBox = (int)($item['pieces_per_box'] ?? 1);
+                        if ($piecesPerBox <= 0) $piecesPerBox = 1;
+                        $boxes = floor($totalPieces / $piecesPerBox);
+                        $loosePieces = $totalPieces % $piecesPerBox;
 
-                            if ($boxes > 0 && $loose > 0) {
-                                $qtyDisplay = "$boxes.$loose";
+                        $qtyStr = "";
+                        if ($sizeMode == 'by_pieces') {
+                            $qtyStr = "{$totalPieces} Pcs";
+                        } else {
+                            if ($boxes > 0 && $loosePieces > 0) {
+                                $cStr = $sizeMode == 'by_cartons' ? 'Crtn' : 'Box';
+                                $qtyStr = "{$boxes} {$cStr} + {$loosePieces} Pc";
                             } elseif ($boxes > 0) {
-                                $qtyDisplay = $boxes;
+                                $cStr = $sizeMode == 'by_cartons' ? 'Cartons' : 'Boxes';
+                                $qtyStr = "{$boxes} {$cStr}";
                             } else {
-                                $qtyDisplay = $loose;
+                                $qtyStr = "{$loosePieces} Pcs";
                             }
                         }
                     @endphp
                     <tr>
-                        <td colspan="3" class="item-name">
+                        <td class="item-name">
                             {{ \Illuminate\Support\Str::limit($item['item_name'], 30) }}
+                            <div class="item-meta mt-1">
+                                @if (!empty($item['item_code']))
+                                    ({{ $item['item_code'] }})
+                                @endif
+                                Total: {{ $totalPieces }} pcs
+                            </div>
                         </td>
-                    </tr>
-                    <tr>
-                        <td class="item-meta">
-                            {{ number_format($item['price'], 2) }} @if((float)($item['discount_amount'] ?? 0) > 0) <span style="font-size:9px;">(D: {{ number_format($item['discount_amount'], 2) }})</span>@endif
+                        <td class="text-end font-weight-bold" style="vertical-align: middle;">
+                            {{ $qtyStr }}
                         </td>
-                        <td class="text-center font-weight-bold">{{ $qtyDisplay }}</td>
-                        <td class="text-end">{{ number_format($item['total'], 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
 
-        <!-- Totals -->
-        <div class="totals-section">
-            <div class="tot-row">
-                <span>Sub Total:</span>
-                <span>{{ number_format($sale->total_bill_amount, 2) }}</span>
+        <!-- Signatures (for delivery) -->
+        <div class="sign-box">
+            <div>
+                <div class="sign-line">Auth. Signature</div>
             </div>
-
-            @if ($sale->total_extradiscount > 0)
-                <div class="tot-row">
-                    <span>Discount:</span>
-                    <span>- {{ number_format($sale->total_extradiscount, 2) }}</span>
-                </div>
-            @endif
-
-            <div class="tot-row grand-total">
-                <span>TOTAL PAYABLE:</span>
-                <span>{{ number_format($sale->total_net, 2) }}</span>
+            <div>
+                <div class="sign-line">Receiver</div>
             </div>
         </div>
-
-        <!-- Ledger -->
-        <div class="balance-section">
-            <div class="tot-row">
-                <span>Prev Balance:</span>
-                <span>{{ number_format(abs($previousBalance), 2) }} {{ $previousBalance >= 0 ? 'Dr' : 'Cr' }}</span>
-            </div>
-            <div class="tot-row">
-                <span>Paid Amount:</span>
-                <span>{{ number_format($sale->cash, 2) }}</span>
-            </div>
-
-            @php
-                $finalBalance = $previousBalance + $sale->total_net - $sale->cash;
-            @endphp
-            <div class="tot-row" style="margin-top: 3px; font-weight: bold;">
-                <span>Closing Balance:</span>
-                <span>{{ number_format(abs($finalBalance), 2) }} {{ $finalBalance >= 0 ? 'Dr' : 'Cr' }}</span>
-            </div>
-        </div>
-
 
         <!-- Footer -->
-         <div class="footer">
-    <p>Thank you for shopping with us!</p>
-    <p>Powered by <strong>Prowave Technologies</strong></p>
-    <p>📞 +92 317 3836 223</p>
-</div>
-
-<style>
-.footer {
-    text-align: center;
-    padding: 15px 10px;
-    font-size: 14px;
-    color: #555;
-    border-top: 1px solid #ddd;
-    margin-top: 20px;
-}
-
-.footer p {
-    margin: 5px 0;
-}
-</style>
-                        
+        <div class="footer">
+            <p>Please check items upon delivery.</p>
+            <p>Powered by <strong>Prowave Technologies</strong></p>
+            <p>📞 +92 317 3836 223</p>
+        </div>
     </div>
 
 </body>

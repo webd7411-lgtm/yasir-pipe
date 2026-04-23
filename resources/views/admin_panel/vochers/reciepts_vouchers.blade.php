@@ -367,7 +367,7 @@
                         $select.empty().append('<option disabled selected>Select Account</option>');
                         data.forEach(function(acc) {
                             $select.append(
-                                `<option value="${acc.id}" data-phone="${acc.account_code}" data-bal="${acc.opening_balance}">${acc.title}</option>`
+                                `<option value="${acc.id}" data-phone="${acc.account_code}" data-bal="${acc.current_balance || 0}">${acc.title}</option>`
                             );
                         });
                     });

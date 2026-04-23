@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Http\Controllers\AccountsHeadController;
@@ -155,6 +156,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/vendor/bilties', [VendorController::class, 'store_vendor_bilty'])->middleware('permission:vendors.create')->name('vendor.bilties.store');
     Route::get('/vendor/{vendor}/ledger', [VendorController::class, 'ledger'])->middleware('permission:vendors.view')->name('vendor.ledger');
     Route::get('/vendor/{vendor}/balance', [VendorController::class, 'getVendorBalance'])->name('vendor.balance');
+    Route::get('/vendor/{vendor}/ledger-json', [VendorController::class, 'getVendorLedgerJson'])->name('vendor.ledger.json');
 
     // Warehouse Routes
     // ///
@@ -268,6 +270,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/{id}/edit', [SaleController::class, 'saleedit'])->middleware('permission:sales.edit')->name('sales.edit');
     Route::put('/sales/{id}', [SaleController::class, 'updatesale'])->middleware('permission:sales.edit')->name('sales.update');
     Route::get('/sales/{id}/dc', [SaleController::class, 'saledc'])->middleware('permission:sales.view')->name('sales.dc');
+    Route::get('/sales/{id}/dc-thermal', [SaleController::class, 'saledcThermal'])->middleware('permission:sales.view')->name('sales.dc_thermal');
     Route::get('/sales/{id}/recepit', [SaleController::class, 'salereceipt'])->middleware('permission:sales.view')->name('sales.receipt');
 
     // booking system
@@ -344,6 +347,23 @@ Route::middleware('auth')->group(function () {
     Route::post('/accounts/{id}/toggle-status', [AccountsHeadController::class, 'toggleStatus'])->name('accounts.toggleStatus');
 
     // reporting routes
+    Route::get('/report/recovery', [ReportingController::class, 'recovery_report'])->name('report.recovery');
+    Route::get('/report/recovery-fetch', [ReportingController::class, 'fetch_recovery'])->name('report.recovery.fetch');
+    
+    Route::get('/report/payable', [ReportingController::class, 'payable_report'])->name('report.payable');
+    Route::get('/report/payable-fetch', [ReportingController::class, 'fetch_payable'])->name('report.payable.fetch');
+    
+    Route::get('/report/parties-balance', [ReportingController::class, 'parties_balance_report'])->name('report.parties_balance');
+    Route::get('/report/parties-balance-fetch', [ReportingController::class, 'fetch_parties_balance'])->name('report.parties_balance.fetch');
+    
+    Route::get('/report/aging', [ReportingController::class, 'aging_report'])->name('report.aging');
+    Route::get('/report/aging-fetch', [ReportingController::class, 'fetch_aging'])->name('report.aging.fetch');
+    
+    Route::get('/report/executive', [ReportingController::class, 'executive_report'])->middleware('permission:executive.report.view')->name('report.executive');
+    Route::get('/report/executive-fetch', [ReportingController::class, 'fetch_executive_report'])->middleware('permission:executive.report.view')->name('report.executive.fetch');
+    
+    Route::get('/report/balance-sheet', [ReportingController::class, 'balance_sheet_report'])->name('report.balance_sheet');
+    Route::get('/report/balance-sheet-fetch', [ReportingController::class, 'fetch_balance_sheet'])->name('report.balance_sheet.fetch');
 
     Route::get('/report/item-stock', [ReportingController::class, 'item_stock_report'])->middleware('permission:item.stock.report.view')->name('report.item_stock');
     Route::post('/report/item-stock-fetch', [ReportingController::class, 'fetchItemStock'])->middleware('permission:item.stock.report.view')->name('report.item_stock.fetch');
@@ -356,6 +376,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('report/customer/ledger', [ReportingController::class, 'customer_ledger_report'])->middleware('permission:customer.ledger.view')->name('report.customer.ledger');
     Route::get('report/customer-ledger/fetch', [ReportingController::class, 'fetch_customer_ledger'])->middleware('permission:customer.ledger.view')->name('report.customer.ledger.fetch');
+
+    Route::get('report/profit-loss', [ReportingController::class, 'profit_loss_report'])->middleware('permission:profit.loss.report.view')->name('report.profit_loss');
+    Route::post('report/profit-loss/fetch', [ReportingController::class, 'fetchProfitLoss'])->middleware('permission:profit.loss.report.view')->name('report.profit_loss.fetch');
+
+    Route::get('report/vendor/ledger', [ReportingController::class, 'vendor_ledger_report'])->middleware('permission:vendor.ledger.view')->name('report.vendor.ledger');
+    Route::get('report/vendor-ledger/fetch', [ReportingController::class, 'fetch_vendor_ledger'])->middleware('permission:vendor.ledger.view')->name('report.vendor.ledger.fetch');
 
     Route::get('reports/onhand', [ReportingController::class, 'onhand'])->middleware('permission:inventory.onhand.view')->name('reports.onhand');
 

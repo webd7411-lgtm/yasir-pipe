@@ -35,14 +35,10 @@ class PurchaseController extends Controller
         $ppb = $product->pieces_per_box > 0 ? $product->pieces_per_box : 1;
 
         if ($stock) {
-            // Robust check: Derive current pieces from Boxes to ensure consistency with user view
-            // If total_pieces column is out of sync or 0, this fixes it.
-            $currentPieces = $stock->quantity * $ppb;
+            // ✅ Add new pieces directly to existing balance to prevent precision/sync loss
+            $stock->total_pieces += $qtyPiecesDelta;
             
-            // Add new pieces
-            $stock->total_pieces = $currentPieces + $qtyPiecesDelta;
-            
-            // Recalculate Boxes
+            // Recalculate Boxes for display only
             $stock->quantity = $stock->total_pieces / $ppb;
             
             $stock->save();
@@ -79,7 +75,7 @@ class PurchaseController extends Controller
             $purchase->updated_due_amount = max(0, $purchase->due_amount - $totalReturned);
             
             // Check if fully returned
-            $purchase->is_fully_returned = $totalReturned >= $purchase->net_amount;
+            $purchase->is_fully_returned = $purchase->net_amount > 0 && $totalReturned >= $purchase->net_amount;
             $purchase->has_partial_return = $totalReturned > 0 && $totalReturned < $purchase->net_amount;
         });
 
@@ -104,8 +100,13 @@ class PurchaseController extends Controller
         // Filter accounts to only show Cash (1) and Bank (2) heads to prevent logic errors
         $accounts = \App\Models\Account::whereIn('head_id', [1, 2])->get();
 
+        $lastInvoice = Purchase::latest('id')->value('invoice_no');
+        $nextInvoice = $lastInvoice
+            ? 'PUR-'.str_pad(((int) filter_var($lastInvoice, FILTER_SANITIZE_NUMBER_INT)) + 1, 3, '0', STR_PAD_LEFT)
+            : 'PUR-001';
+
         // Return new V2 view
-        return view('admin_panel.purchase.add_purchase_v2', compact('Vendor', 'Warehouse', 'Purchase', 'accounts'));
+        return view('admin_panel.purchase.add_purchase_v2', compact('Vendor', 'Warehouse', 'Purchase', 'accounts', 'nextInvoice'));
     }
 
     private function approvePurchase(Purchase $purchase)
@@ -262,10 +263,10 @@ class PurchaseController extends Controller
         $purchase = DB::transaction(function () use ($validated, $request, $gatepass) {
 
             // invoice number
-            $lastInvoice = Purchase::latest()->value('invoice_no');
+            $lastInvoice = Purchase::latest('id')->value('invoice_no');
             $nextInvoice = $lastInvoice
-                ? 'INV-'.str_pad(((int) filter_var($lastInvoice, FILTER_SANITIZE_NUMBER_INT)) + 1, 5, '0', STR_PAD_LEFT)
-                : 'INV-00001';
+                ? 'PUR-'.str_pad(((int) filter_var($lastInvoice, FILTER_SANITIZE_NUMBER_INT)) + 1, 3, '0', STR_PAD_LEFT)
+                : 'PUR-001';
 
             $branchId = (int) ($validated['branch_id'] ?? 1);                 // ✅ use real branch
             $warehouseId = (int) $validated['warehouse_id'];
@@ -776,10 +777,6 @@ class PurchaseController extends Controller
     {
         $purchase = Purchase::with('items.product')->findOrFail($id);
 
-        if ($purchase->status_purchase != 'draft') {
-            return redirect()->route('Purchase.home')->with('error', 'Cannot edit purchase. Status is not draft.');
-        }
-
         $Vendor = Vendor::all();
         $Warehouse = Warehouse::all();
         // Filter accounts to only show Cash (1) and Bank (2) heads
@@ -1034,8 +1031,11 @@ class PurchaseController extends Controller
     public function Invoice($id)
     {
         $purchase = Purchase::with(['items.product', 'vendor', 'warehouse'])->findOrFail($id);
+        
+        $balanceService = app(\App\Services\BalanceService::class);
+        $vendor_balance = $balanceService->getVendorBalance($purchase->vendor_id);
 
-        return view('admin_panel.purchase.Invoice', compact('purchase'));
+        return view('admin_panel.purchase.Invoice', compact('purchase', 'vendor_balance'));
     }
 
     public function receipt($id)
@@ -1342,9 +1342,16 @@ class PurchaseController extends Controller
                 'balance' => $netAmount - $totalPaid,
             ]);
 
-            // Update Purchase Status
+            // Update Purchase Status (only if full return)
             if ($purchase) {
-                $purchase->update(['status_purchase' => 'Returned']);
+                $totalBought = $purchase->items->sum('qty');
+                $totalReturned = \App\Models\PurchaseReturnItem::join('purchase_returns', 'purchase_returns.id', '=', 'purchase_return_items.purchase_return_id')
+                    ->where('purchase_returns.purchase_id', $purchase->id)
+                    ->sum('purchase_return_items.qty');
+                
+                if ($totalReturned >= $totalBought) {
+                    $purchase->update(['status_purchase' => 'Returned']);
+                }
             }
 
             // 5. Update Vendor Ledger & Accounting

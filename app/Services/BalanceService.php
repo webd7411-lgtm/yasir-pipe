@@ -26,16 +26,13 @@ class BalanceService
             return 0;
         }
 
-        // Opening balance from customer master
-        $openingBalance = (float) ($customer->opening_balance ?? 0);
-
-        // Sum of all journal entries for this customer
+        // Sum of all journal entries for this customer (includes Opening Balance journal entry)
         $journalBalance = JournalEntry::where('party_type', Customer::class)
-            ->where('party_id', $customerId)
+            ->where('party_id', $customer->id)
             ->selectRaw('COALESCE(SUM(debit) - SUM(credit), 0) as balance')
             ->value('balance') ?? 0;
 
-        return $openingBalance + $journalBalance;
+        return (float) $journalBalance;
     }
 
     /**
@@ -43,20 +40,13 @@ class BalanceService
      */
     public function getCustomerBalanceBeforeDate(int $customerId, string $date): float
     {
-        $customer = Customer::find($customerId);
-        if (! $customer) {
-            return 0;
-        }
-
-        $openingBalance = (float) ($customer->opening_balance ?? 0);
-
         $journalBalance = JournalEntry::where('party_type', Customer::class)
             ->where('party_id', $customerId)
             ->where('entry_date', '<', $date)
             ->selectRaw('COALESCE(SUM(debit) - SUM(credit), 0) as balance')
             ->value('balance') ?? 0;
 
-        return $openingBalance + $journalBalance;
+        return (float) $journalBalance;
     }
 
     /**
@@ -109,31 +99,21 @@ class BalanceService
     }
 
     /**
-     * Get vendor balance from journal entries
-     * Positive = We owe vendor (Cr)
-     * Negative = Vendor owes us (Dr) - rare
+     * Get vendor balance directly from purchases & payments
+     * Positive = We owe vendor (Payable)
+     * Logic: Opening + Purchases - Payments - Purchase Returns
      */
     public function getVendorBalance(int $vendorId): float
     {
-        $vendor = \App\Models\Vendor::find($vendorId);
-        if (! $vendor) {
-            return 0;
-        }
-
-        // Opening balance from vendor master
-        $openingBalance = (float) ($vendor->opening_balance ?? 0);
-
-        // Sum of all journal entries for this vendor
-        // For vendors: Credit increases balance (we owe more)
-        //              Debit decreases balance (we pay)
-        $journalBalance = JournalEntry::where('party_type', \App\Models\Vendor::class)
+        $apId = $this->getAccountsPayableId();
+        
+        $balance = JournalEntry::where('party_type', \App\Models\Vendor::class)
             ->where('party_id', $vendorId)
+            ->where('account_id', $apId)
             ->selectRaw('COALESCE(SUM(credit) - SUM(debit), 0) as balance')
-            ->value('balance');
+            ->value('balance') ?? 0;
 
-        $journalBalance = $journalBalance ?? 0;
-
-        return $openingBalance + $journalBalance;
+        return (float) $balance;
     }
 
     /**
@@ -141,22 +121,16 @@ class BalanceService
      */
     public function getVendorBalanceBeforeDate(int $vendorId, string $date): float
     {
-        $vendor = \App\Models\Vendor::find($vendorId);
-        if (! $vendor) {
-            return 0;
-        }
+        $apId = $this->getAccountsPayableId();
 
-        $openingBalance = (float) ($vendor->opening_balance ?? 0);
-
-        $journalBalance = JournalEntry::where('party_type', \App\Models\Vendor::class)
+        $balance = JournalEntry::where('party_type', \App\Models\Vendor::class)
             ->where('party_id', $vendorId)
+            ->where('account_id', $apId)
             ->where('entry_date', '<', $date)
             ->selectRaw('COALESCE(SUM(credit) - SUM(debit), 0) as balance')
-            ->value('balance');
+            ->value('balance') ?? 0;
 
-        $journalBalance = $journalBalance ?? 0;
-
-        return $openingBalance + $journalBalance;
+        return (float) $balance;
     }
 
     /**
@@ -201,52 +175,89 @@ class BalanceService
 
     /**
      * Get vendor ledger entries for a date range
+     * Builds from purchases + payment journal entries directly
      */
     public function getVendorLedger(int $vendorId, string $startDate, string $endDate): array
     {
         $vendor = \App\Models\Vendor::find($vendorId);
         if (! $vendor) {
-            return [
-                'vendor' => null,
-                'opening_balance' => 0,
-                'transactions' => [],
-            ];
+            return ['vendor' => null, 'opening_balance' => 0, 'transactions' => []];
         }
 
-        // Get opening balance (balance before start date)
         $openingBalance = $this->getVendorBalanceBeforeDate($vendorId, $startDate);
 
-        // Get journal entries in range
-        $entries = JournalEntry::where('party_type', \App\Models\Vendor::class)
+        // Purchases in range (Increase payable - they go in Debit column = money we owe)
+        $purchases = DB::table('purchases')
+            ->where('vendor_id', $vendorId)
+            ->where('status_purchase', 'approved')
+            ->whereBetween('purchase_date', [$startDate, $endDate])
+            ->select('id', 'invoice_no', 'net_amount', 'purchase_date')
+            ->get()
+            ->map(fn($p) => [
+                'source_type' => 'Purchase',
+                'source_id'   => $p->id,
+                'date'        => $p->purchase_date,
+                'description' => 'Purchase Invoice #' . $p->invoice_no,
+                'debit'       => 0,
+                'credit'      => (float) $p->net_amount, // Cr = we owe vendor more
+                'sort_date'   => $p->purchase_date,
+            ]);
+
+        // Purchase Returns in range (Reduce payable)
+        $returns = DB::table('purchase_returns')
+            ->where('vendor_id', $vendorId)
+            ->whereBetween('return_date', [$startDate, $endDate])
+            ->select('id', 'return_invoice', 'net_amount', 'return_date')
+            ->get()
+            ->map(fn($r) => [
+                'source_type' => 'PurchaseReturn',
+                'source_id'   => $r->id,
+                'date'        => $r->return_date,
+                'description' => 'Purchase Return #' . $r->return_invoice,
+                'debit'       => (float) $r->net_amount, // Dr = reduces what we owe
+                'credit'      => 0,
+                'sort_date'   => $r->return_date,
+            ]);
+
+        // Payments in range: AP debit journal entries against this vendor
+        $apId = $this->getAccountsPayableId();
+        $payments = JournalEntry::where('party_type', \App\Models\Vendor::class)
             ->where('party_id', $vendorId)
+            ->where('account_id', $apId)
             ->whereBetween('entry_date', [$startDate, $endDate])
-            ->orderBy('entry_date', 'asc')
-            ->orderBy('id', 'asc')
-            ->get();
+            ->orderBy('entry_date')
+            ->orderBy('id')
+            ->get()
+            ->map(fn($e) => [
+                'source_type' => $e->source_type,
+                'source_id'   => $e->source_id,
+                'date'        => $e->entry_date,
+                'description' => $e->description,
+                'debit'       => (float) $e->debit,   // Dr = payment reduces payable
+                'credit'      => 0,
+                'sort_date'   => $e->entry_date,
+            ]);
 
-        // Calculate running balance
+        // Merge & sort
+        $all = collect([])
+            ->merge($purchases)
+            ->merge($returns)
+            ->merge($payments)
+            ->sortBy('sort_date')
+            ->values();
+
         $runningBalance = $openingBalance;
-        $transactions = $entries->map(function ($entry) use (&$runningBalance) {
-            // For vendors: Credit increases, Debit decreases
-            $runningBalance += ($entry->credit - $entry->debit);
-
-            return [
-                'id' => $entry->id,
-                'date' => $entry->entry_date,
-                'description' => $entry->description,
-                'debit' => $entry->debit,
-                'credit' => $entry->credit,
-                'balance' => $runningBalance,
-                'source_type' => $entry->source_type,
-                'source_id' => $entry->source_id,
-            ];
+        $transactions = $all->map(function ($row) use (&$runningBalance) {
+            // Credit = payable increases | Debit = payable decreases
+            $runningBalance += $row['credit'] - $row['debit'];
+            return array_merge($row, ['balance' => $runningBalance]);
         });
 
         return [
-            'vendor' => $vendor,
+            'vendor'          => $vendor,
             'opening_balance' => $openingBalance,
             'closing_balance' => $runningBalance,
-            'transactions' => $transactions,
+            'transactions'    => $transactions,
         ];
     }
 

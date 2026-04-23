@@ -56,10 +56,9 @@
                             <th>Image</th>
                             <th>Category</th>
                             <th>Item Name</th>
-                            <th>Dimensions (cm)</th>
-                            <th>Total m²</th>
-                            <th>Price / m²</th>
-                            <th>Sale Total</th>
+                            <th>Stock</th>
+                            <th>Trade Price</th>
+                            <th>Retail Price</th>
                             <th>Brand</th>
                             <th class="text-center">Action</th>
                         </tr>
@@ -83,16 +82,35 @@
                                     <small class="text-muted">{{ $product->sub_category_relation->name ?? '-' }}</small>
                                 </td>
                                 <td>{{ $product->item_name }}</td>
+                                @php
+                                    $stockPieces = (float) ($product->warehouse_stocks_sum_total_pieces ?? 0);
+                                    $ppb = $product->pieces_per_box > 0 ? $product->pieces_per_box : 1;
+                                    
+                                    if (($product->size_mode === 'by_cartons' || $product->size_mode === 'by_size') && $ppb > 1) {
+                                        $boxes = floor($stockPieces / $ppb);
+                                        $loose = $stockPieces % $ppb;
+                                        $stockDisplay = $loose > 0 ? "{$boxes}.{$loose} <small class='text-muted'>(Box.Loose)</small>" : "{$boxes} <small class='text-muted'>Boxes</small>";
+                                    } else {
+                                        $stockDisplay = "{$stockPieces} <small class='text-muted'>Pcs</small>";
+                                    }
+
+                                    // Prices based on mode
+                                    $tradePrice = 0;
+                                    $retailPrice = 0;
+                                    if ($product->size_mode === 'by_size') {
+                                        $m2PerPiece = ($product->height * $product->width) / 10000;
+                                        $tradePrice = $m2PerPiece * (float)$product->purchase_price_per_m2;
+                                        $retailPrice = $m2PerPiece * (float)$product->price_per_m2;
+                                    } else {
+                                        $tradePrice = (float)$product->purchase_price_per_piece;
+                                        $retailPrice = (float)$product->sale_price_per_piece ?: (float)$product->sale_price_per_box; 
+                                    }
+                                @endphp
                                 <td>
-                                    @if ($product->height && $product->width)
-                                        {{ $product->height }} x {{ $product->width }}
-                                    @else
-                                        -
-                                    @endif
+                                    <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 0.85rem;">{!! $stockDisplay !!}</span>
                                 </td>
-                                <td class="fw-bold">{{ number_format($product->total_m2, 2) }}</td>
-                                <td>Rs. {{ number_format($product->price_per_m2, 2) }}</td>
-                                <td class="text-success fw-bold">Rs. {{ number_format($product->total_price, 2) }}</td>
+                                <td>Rs. {{ number_format($tradePrice, 2) }} <small class="text-muted">/pc</small></td>
+                                <td>Rs. {{ number_format($retailPrice, 2) }} <small class="text-muted">/pc</small></td>
                                 <td>{{ $product->brand->name ?? '-' }}</td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-warning viewProductBtn"

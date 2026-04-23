@@ -268,22 +268,41 @@
                             </style>
 
                             <script>
+                                let _notifXhr1 = null;
+                                let _notifXhr2 = null;
+                                let _notifTimer = null;
+
                                 document.addEventListener('DOMContentLoaded', function() {
-                                    // Poll every 30s
-                                    fetchNotifications();
-                                    setInterval(fetchNotifications, 30000);
+                                    // First load after 5 seconds (don't block initial page render)
+                                    setTimeout(function() {
+                                        fetchNotifications();
+                                        // Poll every 90 seconds (was 30s - was killing php artisan serve)
+                                        _notifTimer = setInterval(fetchNotifications, 90000);
+                                    }, 5000);
                                 });
 
                                 function fetchNotifications() {
                                     if (typeof $ === 'undefined') return;
 
-                                    // Fetch standard notifications
-                                    $.get("{{ route('notifications.fetch') }}", function(data) {
+                                    // Abort any in-progress requests before starting new ones
+                                    if (_notifXhr1) { try { _notifXhr1.abort(); } catch(e){} _notifXhr1 = null; }
+                                    if (_notifXhr2) { try { _notifXhr2.abort(); } catch(e){} _notifXhr2 = null; }
+
+                                    // Fetch standard notifications with 8s timeout
+                                    _notifXhr1 = $.ajax({
+                                        url: "{{ route('notifications.fetch') }}",
+                                        method: 'GET',
+                                        timeout: 8000,
+                                        success: function(data) {
                                         let notifications = data.notifications || [];
                                         let count = data.count || 0;
 
-                                        // Fetch Payment Reminders
-                                        $.get("{{ route('customers.reminders') }}", function(reminderData) {
+                                        // Fetch Payment Reminders - also with timeout
+                                        _notifXhr2 = $.ajax({
+                                            url: "{{ route('customers.reminders') }}",
+                                            method: 'GET',
+                                            timeout: 8000,
+                                            success: function(reminderData) {
                                             let reminders = reminderData.reminders || [];
                                             
                                             // Update Badge (Total = Notifications + Reminders)
@@ -391,8 +410,12 @@
                                                     }
                                                 });
                                             });
-                                        });
-                                    });
+                                        }, // end reminders success
+                                        error: function() { /* silently ignore timeout/errors */ }
+                                        }); // end _notifXhr2 ajax
+                                    }, // end notifications success
+                                    error: function() { /* silently ignore timeout/errors */ }
+                                    }); // end _notifXhr1 ajax
                                 }
                             </script>
 
@@ -534,7 +557,7 @@
                                         @endcanany
                                         <!-- Customers & Sales -->
                                         @canany(['sales.view', 'customers.view', 'sales.officers.view',
-                                            'receipts.voucher.view'])
+                                            'receipts.voucher.view', 'zones.view'])
                                             <div class="col-group col-md-3">
                                                 <p class="category-heading">Sales & Customers</p>
                                                 <ul class="submenu-item">
@@ -545,6 +568,10 @@
                                                     @can('customers.view')
                                                         <li><a href="{{ url('customers') }}"><i class="fas fa-user"></i>
                                                                 Customer</a></li>
+                                                    @endcan
+                                                    @can('zones.view')
+                                                        <li><a href="{{ url('zone') }}"><i class="fas fa-map-marker-alt"></i>
+                                                                Zone</a></li>
                                                     @endcan
                                                     @can('sales.officers.view')
                                                         <li><a href="{{ url('sales-officers') }}"><i class="fas fa-user-tie"></i>
@@ -605,7 +632,8 @@
                         </li>
                         <li class="nav-item">
                             @canany(['item.stock.report.view', 'purchase.report.view', 'sale.report.view',
-                                'customer.ledger.view', 'inventory.onhand.view'])
+                                'customer.ledger.view', 'vendor.ledger.view', 'inventory.onhand.view', 'profit.loss.report.view',
+                                'recovery.report.view', 'payable.report.view', 'parties.balance.report.view', 'aging.report.view', 'balance.sheet.report.view', 'executive.report.view'])
                                 <a href="#" class="nav-link">
                                     <i class="menu_icon fas fa-clipboard-list"></i>
                                     <span class="menu-title">Reports</span>
@@ -613,6 +641,10 @@
                                 </a>
                                 <div class="submenu">
                                     <ul class="submenu-item">
+                                        @can('executive.report.view')
+                                            <li><a href="{{ route('report.executive') }}"><i class="fa-solid fa-crown text-warning"></i>
+                                                    Executive Report</a></li>
+                                        @endcan
                                         @can('item.stock.report.view')
                                             <li><a href="{{ route('report.item_stock') }}"><i class="fa-solid fa-users"></i>
                                                     Item Stock Report</a></li>
@@ -627,13 +659,48 @@
                                         @endcan
                                         @can('customer.ledger.view')
                                             <li><a href="{{ route('report.customer.ledger') }}"><i
-                                                        class="fa-solid fa-users"></i> Customer Ledger</a></li>
+                                                        class="fa-solid fa-book"></i> Customer Ledger</a></li>
+                                        @endcan
+
+                                        @can('vendor.ledger.view')
+                                            <li><a href="{{ route('report.vendor.ledger') }}"><i
+                                                        class="fa-solid fa-truck"></i> Vendor Ledger</a></li>
                                         @endcan
 
 
                                         @can('inventory.onhand.view')
                                             <li><a href="{{ route('reports.onhand') }}"><i class="fas fa-warehouse"></i>
                                                     Inventory On-Hand</a></li>
+                                        @endcan
+                                        
+                                        @can('profit.loss.report.view')
+                                            <li><a href="{{ route('report.profit_loss') }}"><i class="fa-solid fa-chart-line"></i>
+                                                    Profit & Loss</a></li>
+                                        @endcan
+                                        
+                                        @can('recovery.report.view')
+                                            <li><a href="{{ route('report.recovery') }}"><i class="fa-solid fa-file-invoice-dollar"></i>
+                                                    Recovery Report</a></li>
+                                        @endcan
+
+                                        @can('payable.report.view')
+                                            <li><a href="{{ route('report.payable') }}"><i class="fa-solid fa-money-bill-wave"></i>
+                                                    Payable Report</a></li>
+                                        @endcan
+
+                                        @can('parties.balance.report.view')
+                                            <li><a href="{{ route('report.parties_balance') }}"><i class="fa-solid fa-users"></i>
+                                                    Parties Balances</a></li>
+                                        @endcan
+
+                                        @can('aging.report.view')
+                                            <li><a href="{{ route('report.aging') }}"><i class="fa-solid fa-hourglass-half"></i>
+                                                    Aging Report</a></li>
+                                        @endcan
+
+                                        @can('balance.sheet.report.view')
+                                            <li><a href="{{ route('report.balance_sheet') }}"><i class="fa-solid fa-scale-balanced"></i>
+                                                    Balance Sheet</a></li>
                                         @endcan
                                     </ul>
                                 </div>
@@ -837,6 +904,62 @@
             console.log('BrowserSync detected. Disconnecting socket to stop Ghost Mode sync.');
             window.___browserSync___.socket.disconnect();
         }
+    </script>
+
+    {{-- ✅ ANTI-FREEZE FIX: Remove stuck Bootstrap modal backdrops & overlays --}}
+    <script>
+        (function () {
+            // Run cleanup on every page load
+            function clearStuckOverlays() {
+                // Remove stuck Bootstrap modal-backdrop divs
+                document.querySelectorAll('.modal-backdrop').forEach(function (el) {
+                    el.remove();
+                });
+                // Remove 'modal-open' class on body that prevents scrolling
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+
+                // Remove any stuck open dropdowns
+                document.querySelectorAll('.dropdown-menu.show').forEach(function (el) {
+                    el.classList.remove('show');
+                });
+                document.querySelectorAll('.show[data-toggle="dropdown"]').forEach(function (el) {
+                    el.classList.remove('show');
+                });
+            }
+
+            // Run on page load
+            clearStuckOverlays();
+
+            // Emergency: Press Escape key to clear all stuck overlays/modals
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    clearStuckOverlays();
+                    // Also close any open Bootstrap modals
+                    document.querySelectorAll('.modal.show').forEach(function (modal) {
+                        $(modal).modal('hide');
+                    });
+                }
+            });
+
+            // Auto-detect freeze: if a click occurs on body but hits nothing interactive, clear overlays
+            document.body.addEventListener('click', function (e) {
+                if (e.target === document.body || e.target.classList.contains('modal-backdrop')) {
+                    clearStuckOverlays();
+                }
+            });
+
+            // Run cleanup every 30 seconds as a safety net
+            setInterval(function () {
+                // Only clean if a backdrop exists but no modal is visible
+                var backdrops = document.querySelectorAll('.modal-backdrop');
+                var openModals = document.querySelectorAll('.modal.show');
+                if (backdrops.length > 0 && openModals.length === 0) {
+                    clearStuckOverlays();
+                }
+            }, 30000);
+        })();
     </script>
 </body>
 

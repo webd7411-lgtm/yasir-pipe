@@ -265,7 +265,12 @@
                     <div class="info-box-header">Reference</div>
                     <div><span class="info-label">DC #:</span> <strong>{{ $sale->id }}</strong></div>
                     <div><span class="info-label">Date:</span> {{ $sale->created_at->format('d-m-Y') }}</div>
-                    <div><span class="info-label">Ref:</span> {{ $sale->reference ?? '-' }}</div>
+                    @if($sale->reference)
+                    <div style="margin-top:4px; padding-top:4px; border-top:1px dashed #ddd;">
+                        <span class="info-label" style="display:block; margin-bottom:2px;">Remarks:</span>
+                        <span style="font-size:11px; color:#333;">{{ $sale->reference }}</span>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>

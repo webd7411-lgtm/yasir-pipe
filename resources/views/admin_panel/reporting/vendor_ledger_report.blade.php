@@ -39,30 +39,21 @@
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h4 class="mb-1 text-primary"><i class="bi bi-file-earmark-spreadsheet"></i> Customer Ledger Report
+                        <h4 class="mb-1 text-primary"><i class="fas fa-truck me-2"></i> Vendor Ledger Report
                         </h4>
-                        <p class="text-muted mb-0">Detailed financial statement by date range.</p>
+                        <p class="text-muted mb-0">Detailed vendor financial statement by date range.</p>
                     </div>
                 </div>
 
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <form id="ledgerForm" class="row g-3 p-3 bg-light rounded border mb-4">
-                            <div class="col-md-2">
-                                <label class="form-label fw-bold">Zone</label>
-                                <select name="zone_id" id="zone_id" class="form-control select2">
-                                    <option value="">-- All Zones --</option>
-                                    @foreach ($zones as $z)
-                                        <option value="{{ $z->id }}">{{ $z->zone }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label fw-bold">Customer</label>
-                                <select name="customer_id" id="customer_id" class="form-control select2">
-                                    <option value="all" data-zone="">-- All Customers --</option>
-                                    @foreach ($customers as $c)
-                                        <option value="{{ $c->id }}" data-zone="{{ $c->zone }}">{{ $c->customer_name }}</option>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Vendor</label>
+                                <select name="vendor_id" id="vendor_id" class="form-control select2">
+                                    <option value="all">-- All Vendors --</option>
+                                    @foreach ($vendors as $v)
+                                        <option value="{{ $v->id }}">{{ $v->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -86,9 +77,9 @@
                                 <input type="date" name="end_date" id="end_date" class="form-control"
                                     value="{{ date('Y-m-d') }}">
                             </div>
-                            <div class="col-md-2 d-flex align-items-end">
+                            <div class="col-md-3 d-flex align-items-end">
                                 <button type="button" id="btnSearch" class="btn btn-primary w-100"><i
-                                        class="bi bi-search"></i> Generate</button>
+                                        class="fas fa-search"></i> Generate</button>
                             </div>
                         </form>
 
@@ -114,7 +105,7 @@
                                         <tr>
                                             <th width="10%">Date</th>
                                             <th width="12%">Ref / Invoice</th>
-                                            <th width="15%">Customer</th>
+                                            <th width="15%">Vendor</th>
                                             <th width="28%">Description</th>
                                             <th width="10%">Debit (Dr)</th>
                                             <th width="10%">Credit (Cr)</th>
@@ -148,26 +139,6 @@
                 });
             }
 
-            let allCustomers = $('#customer_id option').clone();
-
-            // Zone Filter Logic
-            $(document).on('change', '#zone_id', function() {
-                let selectedZone = $(this).val();
-                let customerSelect = $('#customer_id');
-
-                customerSelect.empty();
-
-                allCustomers.each(function() {
-                    let optionZone = $(this).attr('data-zone');
-                    
-                    if ($(this).val() === 'all' || selectedZone === "" || optionZone == selectedZone) {
-                        customerSelect.append($(this).clone());
-                    }
-                });
-
-                customerSelect.val('all').trigger('change.select2');
-            });
-
             // Quick Filter Logic
             $(document).on('change', '#quick_filter', function() {
                 let val = $(this).val();
@@ -178,18 +149,15 @@
                 if (val === 'daily') {
                     // Start and end are both today
                 } else if (val === 'weekly') {
-                    // Start is first day of current week (let's use Monday)
-                    let day = today.getDay(); // 0 is Sunday, 1 is Monday
+                    let day = today.getDay();
                     let diff = today.getDate() - day + (day === 0 ? -6 : 1);
                     start.setDate(diff);
                 } else if (val === 'monthly') {
-                    // Start is 1st of current month
                     start.setDate(1);
                 } else if (val === 'yearly') {
-                    // Start is Jan 1st of current year
                     start.setMonth(0, 1);
                 } else if (val === 'custom') {
-                    return; // Don't change dates for custom
+                    return;
                 }
 
                 $("#start_date").val(formatDateForInput(start));
@@ -209,7 +177,7 @@
                 return [year, month, day].join('-');
             }
 
-            // Auto-load ledger on page load (all customers, all dates)
+            // Auto-load ledger on page load
             loadLedger();
 
             $(document).on('click', '#btnSearch', function() {
@@ -217,21 +185,18 @@
             });
 
             function loadLedger() {
-                let zid = $("#zone_id").val();
-                let cid = $("#customer_id").val();
+                let vid = $("#vendor_id").val();
                 let start = $("#start_date").val();
                 let end = $("#end_date").val();
 
-                // Default dates if empty
                 if (!start) start = '2000-01-01';
                 if (!end) end = '{{ date("Y-m-d") }}';
 
                 $("#loader").show();
                 $("#ledgerBox").hide();
 
-                $.get("{{ route('report.customer.ledger.fetch') }}", {
-                    zone_id: zid,
-                    customer_id: cid || 'all',
+                $.get("{{ route('report.vendor.ledger.fetch') }}", {
+                    vendor_id: vid || 'all',
                     start_date: start,
                     end_date: end
                 }, function(res) {
@@ -244,7 +209,7 @@
                     // Build Header
                     $("#ledgerHeader").html(`
                     <div class="col-md-6">
-                        <h5 class="text-dark mb-1">${res.customer.customer_name}</h5>
+                        <h5 class="text-dark mb-1">${res.vendor.name}</h5>
                         <p class="mb-0 text-muted">Reporting Period: <strong>${displayStart}</strong> to <strong>${displayEnd}</strong></p>
                     </div>
                     <div class="col-md-6 text-end">
@@ -278,19 +243,18 @@
                         totalCredit += credit;
                         lastBalance = parseFloat(t.balance);
 
-                        // Determine Dr/Cr Label
-                        let balLabel = lastBalance >= 0 ? 'Dr' : 'Cr';
-                        let balClass = lastBalance >= 0 ? 'balance-positive' :
-                            'balance-negative';
+                        // For vendors: positive balance means we owe them (Cr)
+                        let balLabel = lastBalance >= 0 ? 'Cr' : 'Dr';
+                        let balClass = lastBalance >= 0 ? 'balance-negative' : 'balance-positive';
 
-                        // Customer name column (useful for "All Customers")
-                        let custName = t.customer_name || '-';
+                        // Vendor name column (useful for "All Vendors")
+                        let vendName = t.vendor_name || '-';
 
                         html += `
                         <tr>
                             <td class="text-center">${t.date}</td>
                             <td class="text-center"><span class="badge bg-light text-dark border">${t.invoice ?? '-'}</span></td>
-                            <td class="fw-bold">${custName}</td>
+                            <td class="fw-bold">${vendName}</td>
                             <td class="text-start">${t.description}</td>
                             <td class="text-end text-success">${debit > 0 ? debit.toFixed(2) : '-'}</td>
                             <td class="text-end text-danger">${credit > 0 ? credit.toFixed(2) : '-'}</td>
@@ -337,7 +301,7 @@
                 var options = {
                     series: [dr, cr],
                     chart: { type: 'donut', height: 250, fontFamily: 'inherit' },
-                    labels: ['Total Debit (Invoices)', 'Total Credit (Receipts)'],
+                    labels: ['Total Debit (Payments)', 'Total Credit (Purchases)'],
                     colors: ['#ef4444', '#10b981'],
                     plotOptions: {
                         pie: {

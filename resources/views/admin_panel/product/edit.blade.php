@@ -541,7 +541,7 @@
                                 <h6 class="form-label-pro text-primary mb-3">Rate per Unit</h6>
                                 <div class="mb-3">
                                     <label class="form-label-pro text-success">Sale Price <span class="unit-label text-muted fw-normal">(pc)</span></label>
-                                    <input type="number" class="form-control-pro fw-bold text-success" name="sale_price_per_box" id="sale_price_per_box" step="0.01" value="{{ $product->sale_price_per_box }}">
+                                    <input type="number" class="form-control-pro fw-bold text-success" name="sale_price_per_box" id="sale_price_per_box" step="0.01" value="{{ $product->sale_price_per_piece }}">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label-pro text-secondary">Purchase Price <span class="unit-label text-muted fw-normal">(pc)</span></label>
@@ -841,7 +841,7 @@
 
             // Events
             modeRadios.forEach(r => r.addEventListener('change', function() {
-                resetInputs(); 
+                // ✅ Do NOT resetInputs() on edit page - user's saved values must stay!
                 updateMode();
             }));
             form.querySelectorAll('input').forEach(i => i.addEventListener('input', calculate));

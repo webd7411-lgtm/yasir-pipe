@@ -14,19 +14,37 @@
             <div class="card mb-3">
                 <div class="card-body">
                     <form id="purchaseFilterForm" class="row g-2 align-items-end">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label">Start Date</label>
                             <input type="date" name="start_date" id="start_date" class="form-control">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label">End Date</label>
                             <input type="date" name="end_date" id="end_date" class="form-control">
                         </div>
                         <div class="col-md-2">
+                            <label class="form-label">Vendor</label>
+                            <select name="vendor_id" id="vendor_id" class="form-control">
+                                <option value="all">All Vendors</option>
+                                @foreach($vendors as $v)
+                                    <option value="{{ $v->id }}">{{ $v->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Product</label>
+                            <select name="product_id" id="product_id" class="form-control">
+                                <option value="all">All Products</option>
+                                @foreach($products as $p)
+                                    <option value="{{ $p->id }}">{{ $p->item_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <button type="button" id="btnSearch" class="btn btn-primary w-100">Search</button>
                         </div>
-                        <div class="col-md-4 text-end">
-                            <button type="button" id="btnExportCsv" class="btn btn-danger">Export CSV</button>
+                        <div class="col-md-2 text-end">
+                            <button type="button" id="btnExportCsv" class="btn btn-danger w-100">Export CSV</button>
                         </div>
                     </form>
                 </div>
@@ -53,6 +71,7 @@
                                     <th>Price</th>
                                     <th>Item Discount</th>
                                     <th>Line Total</th>
+                                    <th>Returns</th>
                                     <th>Subtotal</th>
                                     <th>Discount</th>
                                     <th>Extra Cost</th>
@@ -164,6 +183,9 @@
             <td>${parseFloat(r.price).toFixed(2)}</td>
             <td>${parseFloat(r.item_discount).toFixed(2)}</td>
             <td>${parseFloat(r.line_total).toFixed(2)}</td>
+            <td class="text-danger small">
+                ${r.returns && r.returns.length ? r.returns.map(ret => `${ret.qty} (${parseFloat(ret.line_total).toFixed(2)})`).join('<br>') : '-'}
+            </td>
             <td>${parseFloat(r.subtotal).toFixed(2)}</td>
             <td>${parseFloat(r.discount).toFixed(2)}</td>
             <td>${parseFloat(r.extra_cost).toFixed(2)}</td>
@@ -183,7 +205,7 @@
 
             // Grand total row
             tableContent += `<tr class="fw-bold">
-        <td colspan="11" class="text-end">Grand Total:</td>
+        <td colspan="12" class="text-end">Grand Total:</td>
         <td>${grandSubtotal.toFixed(2)}</td>
         <td>${grandDiscount.toFixed(2)}</td>
         <td>${grandExtraCost.toFixed(2)}</td>
@@ -210,7 +232,9 @@
                 data: {
                     _token: "{{ csrf_token() }}",
                     start_date: start_date,
-                    end_date: end_date
+                    end_date: end_date,
+                    vendor_id: $('#vendor_id').val(),
+                    product_id: $('#product_id').val()
                 },
                 success: function(response) {
                     $('#loader').hide();
@@ -234,7 +258,9 @@
                 data: {
                     _token: "{{ csrf_token() }}",
                     start_date: start_date,
-                    end_date: end_date
+                    end_date: end_date,
+                    vendor_id: $('#vendor_id').val(),
+                    product_id: $('#product_id').val()
                 },
                 success: function(response) {
                     $('#loader').hide();
@@ -243,9 +269,10 @@
                         return;
                     }
 
-                    var csv = 'Purchase Date,Invoice No,Vendor ID,Item Code,Item Name,Qty,Unit,Price,Item Discount,Line Total,Subtotal,Discount,Extra Cost,Net Amount,Paid Amount,Due Amount,Status\n';
+                    var csv = 'Purchase Date,Invoice No,Vendor ID,Item Code,Item Name,Qty,Unit,Price,Item Discount,Line Total,Returns,Subtotal,Discount,Extra Cost,Net Amount,Paid Amount,Due Amount,Status\n';
                     response.data.forEach(function(r) {
-                        csv += `"${r.purchase_date}","${r.invoice_no}","${r.vendor_name}","${r.item_code}","${r.item_name}",${r.qty},${r.unit},${r.price},${r.item_discount},${r.line_total},${r.subtotal},${r.discount},${r.extra_cost},${r.net_amount},${r.paid_amount},${r.due_amount},"${r.status_purchase}"\n`;
+                        var returnStr = r.returns && r.returns.length ? r.returns.map(ret => `${ret.qty}`).join(';') : '';
+                        csv += `"${r.purchase_date}","${r.invoice_no}","${r.vendor_name}","${r.item_code}","${r.item_name}",${r.qty},${r.unit},${r.price},${r.item_discount},${r.line_total},"${returnStr}",${r.subtotal},${r.discount},${r.extra_cost},${r.net_amount},${r.paid_amount},${r.due_amount},"${r.status_purchase}"\n`;
                     });
 
                     var blob = new Blob([csv], {

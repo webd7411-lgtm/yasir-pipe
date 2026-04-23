@@ -453,6 +453,42 @@
                 padding: 24px;
             }
         }
+
+        /* Top 10 Lists Widget */
+        .top-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--dash-border);
+        }
+        .top-list-item:last-child {
+            border-bottom: none;
+        }
+        .top-list-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .top-list-rank {
+            font-weight: bold;
+            color: var(--dash-muted);
+            width: 25px;
+            text-align: center;
+        }
+        .top-list-name {
+            font-weight: 600;
+            color: var(--dash-text);
+            margin-bottom: 2px;
+        }
+        .top-list-sub {
+            font-size: 0.8rem;
+            color: var(--dash-muted);
+        }
+        .top-list-val {
+            font-weight: bold;
+            color: var(--dash-primary);
+        }
     </style>
 
     <div class="main-content">
@@ -714,6 +750,89 @@
                     @endcan
                 </div>
 
+                <!-- Top 10 Sections -->
+                @can('sales.view')
+                <div class="chart-section" style="margin-top: 28px;">
+                    <!-- Top Products -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <i class="fa fa-fire text-danger" style="color: var(--dash-danger) !important;"></i> Top Products (Qty Sold)
+                            </div>
+                        </div>
+                        <div class="chart-body" style="padding: 24px;">
+                            @if(isset($topProducts) && count($topProducts) > 0)
+                                <div class="row align-items-center">
+                                    <div class="col-md-6 mb-3 mb-md-0 d-flex justify-content-center">
+                                        <div id="topProductsDonut"></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div style="max-height: 280px; overflow-y: auto; padding-right: 10px;">
+                                            @php $rank = 1; @endphp
+                                            @foreach($topProducts as $tp)
+                                            <div class="top-list-item">
+                                                <div class="top-list-info">
+                                                    <div class="top-list-rank">#{{ $rank++ }}</div>
+                                                    <div>
+                                                        <div class="top-list-name">{{ $tp->product_name ?: 'Unknown Product' }}</div>
+                                                        <div class="top-list-sub">Revenue: Rs {{ number_format($tp->total_revenue ?? 0) }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="top-list-val">
+                                                    {{ number_format($tp->total_qty) }} units
+                                                </div>
+                                            </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="text-center text-muted py-4">No product data available yet.</div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Top Customers -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <i class="fa fa-crown text-warning" style="color: var(--dash-warning) !important;"></i> Top Customers (Sales Vol)
+                            </div>
+                        </div>
+                        <div class="chart-body" style="padding: 24px;">
+                            @if(isset($topCustomers) && count($topCustomers) > 0)
+                                <div class="row align-items-center">
+                                    <div class="col-md-6 mb-3 mb-md-0 d-flex justify-content-center">
+                                        <div id="topCustomersDonut"></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div style="max-height: 280px; overflow-y: auto; padding-right: 10px;">
+                                            @php $rank = 1; @endphp
+                                            @foreach($topCustomers as $tc)
+                                            <div class="top-list-item">
+                                                <div class="top-list-info">
+                                                    <div class="top-list-rank">#{{ $rank++ }}</div>
+                                                    <div>
+                                                        <div class="top-list-name">{{ $tc->customer_name ?: 'Walk-in Customer' }}</div>
+                                                        <div class="top-list-sub">{{ $tc->total_orders }} orders completed</div>
+                                                    </div>
+                                                </div>
+                                                <div class="top-list-val" style="color: var(--dash-success);">
+                                                    Rs {{ number_format($tc->total_sales) }}
+                                                </div>
+                                            </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="text-center text-muted py-4">No customer data available yet.</div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @endcan
+
             </div>
         </div>
     </div>
@@ -723,6 +842,9 @@
         document.addEventListener("DOMContentLoaded", function() {
             const salesStats = @json($salesChartStats);
             const purchaseStats = @json($purchaseChartStats);
+            
+            const topProductsData = @json($topProducts ?? []);
+            const topCustomersData = @json($topCustomers ?? []);
 
             // Sales Chart
             const salesOptions = {
@@ -921,6 +1043,76 @@
                     });
                 });
             });
+
+            // ===== Top 10 Products Donut Chart =====
+            if (topProductsData.length > 0) {
+                const productNames = topProductsData.map(p => p.product_name || 'Unknown');
+                const productQtys = topProductsData.map(p => parseFloat(p.total_qty) || 0);
+
+                const prodOptions = {
+                    chart: { type: 'donut', height: 300, fontFamily: 'inherit' },
+                    series: productQtys,
+                    labels: productNames,
+                    colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6'],
+                    plotOptions: {
+                        pie: {
+                            donut: {
+                                size: '70%',
+                                labels: {
+                                    show: true,
+                                    name: { show: true, fontSize: '12px' },
+                                    value: { show: true, fontSize: '16px', fontWeight: 'bold' },
+                                    total: { show: true, showAlways: true, label: 'Total Sold', fontSize: '14px' }
+                                }
+                            }
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    stroke: { width: 0 },
+                    legend: { show: false },
+                    tooltip: {
+                        theme: 'light',
+                        y: { formatter: val => val + " units" }
+                    }
+                };
+                new ApexCharts(document.querySelector("#topProductsDonut"), prodOptions).render();
+            }
+
+            // ===== Top 10 Customers Donut Chart =====
+            if (topCustomersData.length > 0) {
+                const customerNames = topCustomersData.map(c => c.customer_name || 'Walk-in');
+                const customerSales = topCustomersData.map(c => parseFloat(c.total_sales) || 0);
+
+                const custOptions = {
+                    chart: { type: 'donut', height: 300, fontFamily: 'inherit' },
+                    series: customerSales,
+                    labels: customerNames,
+                    colors: ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#14b8a6', '#6366f1', '#eab308', '#22c55e'],
+                    plotOptions: {
+                        pie: {
+                            donut: {
+                                size: '70%',
+                                labels: {
+                                    show: true,
+                                    name: { show: true, fontSize: '12px' },
+                                    value: { show: true, fontSize: '16px', fontWeight: 'bold', formatter: val => 'Rs ' + val.toLocaleString() },
+                                    total: { show: true, showAlways: true, label: 'Total Rev', fontSize: '14px', formatter: w => {
+                                        return 'Rs ' + w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString();
+                                    }}
+                                }
+                            }
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    stroke: { width: 0 },
+                    legend: { show: false },
+                    tooltip: {
+                        theme: 'light',
+                        y: { formatter: val => "Rs " + val.toLocaleString() }
+                    }
+                };
+                new ApexCharts(document.querySelector("#topCustomersDonut"), custOptions).render();
+            }
         });
     </script>
 @endsection

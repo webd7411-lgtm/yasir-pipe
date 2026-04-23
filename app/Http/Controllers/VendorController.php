@@ -36,6 +36,27 @@ class VendorController extends Controller
                 'closing_balance' => $request->opening_balance ?? 0,
                 'previous_balance' => $request->previous_balance ?? 0,
             ]);
+
+            // ✅ Record Journal Entry for Opening Balance (Accounting)
+            if ($request->opening_balance > 0) {
+                try {
+                    $balanceService = app(\App\Services\BalanceService::class);
+                    $journalService = app(\App\Services\JournalEntryService::class);
+                    $apId = $balanceService->getAccountsPayableId();
+
+                    $journalService->recordEntry(
+                        $vendor,
+                        $apId,
+                        0, // Debit
+                        $request->opening_balance, // Credit (Liability)
+                        "Opening Balance",
+                        now()->format('Y-m-d'),
+                        $vendor
+                    );
+                } catch (\Exception $e) {
+                    \Log::error("Vendor Opening Balance Journal Error: " . $e->getMessage());
+                }
+            }
         }
 
         return back()->with('success', 'Saved Successfully');
@@ -172,5 +193,24 @@ class VendorController extends Controller
         $ledgerData = $balanceService->getVendorLedger($vendorId, $startDate, $endDate);
         
         return view('admin_panel.vendors.ledger', $ledgerData);
+    }
+    /**
+     * Get vendor ledger as JSON (AJAX)
+     */
+    public function getVendorLedgerJson($vendorId)
+    {
+        $vendor = Vendor::findOrFail($vendorId);
+        $balanceService = app(\App\Services\BalanceService::class);
+        
+        // Default range: last 30 days
+        $startDate = request('start_date', now()->subDays(30)->format('Y-m-d'));
+        $endDate = request('end_date', now()->format('Y-m-d'));
+        
+        $ledgerData = $balanceService->getVendorLedger($vendorId, $startDate, $endDate);
+        
+        // Add current balance to response
+        $ledgerData['current_balance'] = $balanceService->getVendorBalance($vendorId);
+        
+        return response()->json($ledgerData);
     }
 }

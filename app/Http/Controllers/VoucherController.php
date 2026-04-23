@@ -575,7 +575,7 @@ class VoucherController extends Controller
                 'total_amount' => $request->total_amount,
             ];
 
-            PaymentVoucher::create($voucherData);
+            $payment = PaymentVoucher::create($voucherData);
 
             $totalAmount = (float) $request->total_amount;
 
@@ -585,8 +585,18 @@ class VoucherController extends Controller
             if ($request->header_account_id) {
                 $sourceAccount = Account::find($request->header_account_id);
                 if ($sourceAccount) {
-                    $sourceAccount->opening_balance = $sourceAccount->opening_balance - $totalAmount;
+                    $sourceAccount->current_balance = $sourceAccount->current_balance - $totalAmount;
                     $sourceAccount->save();
+
+                    // Credit Cash/Bank because money is going out
+                    app(\App\Services\JournalEntryService::class)->recordEntry(
+                        $payment,
+                        $request->header_account_id,
+                        0, // Debit
+                        $totalAmount, // Credit
+                        "Payment Voucher #$pvid",
+                        $request->entry_date ?? date('Y-m-d')
+                    );
                 }
             }
 
@@ -603,39 +613,46 @@ class VoucherController extends Controller
                     }
 
                     if ($type === 'vendor') {
+                        $balanceService = app(\App\Services\BalanceService::class);
                         $ledger = VendorLedger::where('vendor_id', $partyId)->latest()->first();
                         $bal = $ledger ? $ledger->closing_balance : 0;
                         VendorLedger::create([
-                            'vendor_id' => $partyId,
-                            'admin_or_user_id' => auth()->id(),
-                            'date' => now(),
-                            'description' => "Payment Voucher #$pvid",
-                            'opening_balance' => 0, // Not strictly tracking opening this way usually
-                            'debit' => $rowAmount, // Payment to vendor is Debit (reduces liability)
-                            'credit' => 0,
-                            'previous_balance' => $bal,
-                            'closing_balance' => $bal + $rowAmount, // Vendor Balance (Liability) decreases? Or is this logic implied "Paid Amount"?
-                            // Typically: Vendor Credit = Payable. Debit = Paid.
-                            // If I pay a vendor, their Balance (Payable) decreases.
-                            // Here logic says `closing_balance + amount`.
-                            // This implies we are INCREASING the balance?
-                            // Let's stick to previous logic to avoid breaking convention, assuming "Debit" increases the ledger value stored.
+                            'vendor_id'         => $partyId,
+                            'admin_or_user_id'  => auth()->id(),
+                            'opening_balance'   => 0,
+                            'previous_balance'  => $bal,
+                            'closing_balance'   => $bal - $rowAmount, // ✅ MINUS: payment reduces vendor balance
                         ]);
+
+                        // Journal Entry: Debit Vendor Control Account (Liability decreases)
+                        $journalService = app(\App\Services\JournalEntryService::class);
+                        $payablesAccount = $balanceService->getAccountsPayableId();
+
+                        $journalService->recordEntry(
+                            $payment,
+                            $payablesAccount,
+                            $rowAmount, // Debit → Liability decreases
+                            0,
+                            "Payment #$pvid",
+                            $request->entry_date ?? date('Y-m-d'),
+                            \App\Models\Vendor::find($partyId)
+                        );
+
                     } elseif ($type === 'customer') {
                         $ledger = CustomerLedger::where('customer_id', $partyId)->latest()->first();
                         $bal = $ledger ? $ledger->closing_balance : 0;
                         CustomerLedger::create([
-                            'customer_id' => $partyId,
+                            'customer_id'      => $partyId,
                             'admin_or_user_id' => auth()->id(),
                             'previous_balance' => $bal,
-                            'opening_balance' => 0,
-                            'closing_balance' => $bal + $rowAmount, // Same logic as previous
+                            'opening_balance'  => 0,
+                            'closing_balance'  => $bal - $rowAmount, // ✅ MINUS: payment reduces customer balance
                         ]);
                     } elseif ($type) {
                         // Account ID in table
                         $acc = Account::find($partyId);
                         if ($acc) {
-                            $acc->opening_balance = $acc->opening_balance + $rowAmount;
+                            $acc->current_balance = $acc->current_balance + $rowAmount;
                             $acc->save();
                         }
                     }
@@ -869,8 +886,10 @@ class VoucherController extends Controller
             if ($type == 'vendor') {
                 $vendors = \Illuminate\Support\Facades\DB::table('vendors')->select('id', 'name as text', 'phone as mobile', 'address', 'opening_balance')->get();
                 foreach ($vendors as $vendor) {
-                    // Use BalanceService to get real-time balance from Journal Entries
                     $vendor->closing_balance = $balanceService->getVendorBalance($vendor->id);
+                    $bal = number_format(abs($vendor->closing_balance), 0);
+                    $lbl = $vendor->closing_balance >= 0 ? 'Cr' : 'Dr';
+                    $vendor->text = $vendor->text . " (Bal: {$bal} {$lbl})";
                     $data[] = $vendor;
                 }
             } elseif ($type == 'customer') {
@@ -878,11 +897,11 @@ class VoucherController extends Controller
                     ->get(['id', 'customer_name', 'mobile', 'address', 'status', 'opening_balance']);
 
                 foreach ($customers as $customer) {
-                    // Use BalanceService to get real-time balance from Journal Entries
                     $customer->closing_balance = $balanceService->getCustomerBalance($customer->id);
-
-                    // Format for Frontend
-                    $customer->text = $customer->customer_name;
+                    $bal = number_format(abs($customer->closing_balance), 0);
+                    $lbl = $customer->closing_balance >= 0 ? 'Dr' : 'Cr';
+                    
+                    $customer->text = $customer->customer_name . " (Bal: {$bal} {$lbl})";
                     $customer->remarks = $customer->status;
                     $data[] = $customer;
                 }
@@ -891,11 +910,11 @@ class VoucherController extends Controller
                     ->get(['id', 'customer_name', 'mobile', 'address', 'status', 'opening_balance']);
 
                 foreach ($customers as $customer) {
-                    // Use BalanceService to get real-time balance from Journal Entries
                     $customer->closing_balance = $balanceService->getCustomerBalance($customer->id);
+                    $bal = number_format(abs($customer->closing_balance), 0);
+                    $lbl = $customer->closing_balance >= 0 ? 'Dr' : 'Cr';
 
-                    // Format for Frontend
-                    $customer->text = $customer->customer_name;
+                    $customer->text = $customer->customer_name . " (Bal: {$bal} {$lbl})";
                     $customer->remarks = $customer->status;
                     $data[] = $customer;
                 }
@@ -960,6 +979,7 @@ class VoucherController extends Controller
                 'party_id' => $request->vendor_id,
                 'tel' => $request->tel,
                 'remarks' => $request->remarks,
+                'reference_no' => $request->ref_no_header,
                 'narration_id' => json_encode($narrationIds),
                 'row_account_head' => json_encode($request->row_account_head),
                 'row_account_id' => json_encode($request->row_account_id),
@@ -967,12 +987,15 @@ class VoucherController extends Controller
                 'total_amount' => $request->total_amount,
             ];
 
-            ExpenseVoucher::create($voucherData);
+            $expense = ExpenseVoucher::create($voucherData);
 
             $amount = (float) $request->total_amount;
 
+            $journalService = app(\App\Services\JournalEntryService::class);
+            $balanceService = app(\App\Services\BalanceService::class);
+
             /**
-             * STEP 1: Expense Accounts (row side) → PLUS
+             * STEP 1: Expense Accounts (row side) → PLUS (Debit)
              */
             if ($request->row_account_id && $request->amount) {
                 foreach ($request->row_account_id as $index => $accId) {
@@ -981,8 +1004,17 @@ class VoucherController extends Controller
                     if ($rowAmount > 0) {
                         $rowAccount = Account::find($accId);
                         if ($rowAccount) {
-                            $rowAccount->opening_balance = $rowAccount->opening_balance + $rowAmount; // PLUS
+                            $rowAccount->current_balance = $rowAccount->current_balance + $rowAmount; // PLUS
                             $rowAccount->save();
+
+                            $journalService->recordEntry(
+                                $expense,
+                                $accId,
+                                $rowAmount, // Debit Expense
+                                0, // Credit
+                                "Expense Voucher #$evid",
+                                $request->entry_date ?? date('Y-m-d')
+                            );
                         }
                     }
                 }
@@ -1001,15 +1033,22 @@ class VoucherController extends Controller
                     VendorLedger::create([
                         'vendor_id' => $request->vendor_id,
                         'admin_or_user_id' => auth()->id(),
-                        'date' => now(),
-                        'description' => "Expense Voucher #$evid",
                         'opening_balance' => 0,
-                        'debit' => 0,
-                        'credit' => $amount,
                         'previous_balance' => 0,
                         'closing_balance' => -$amount,
                     ]);
                 }
+
+                // Credit Vendor Liability Side
+                $journalService->recordEntry(
+                    $expense,
+                    $balanceService->getAccountsPayableId(),
+                    0, // Debit
+                    $amount, // Credit vendor liability
+                    "Expense Voucher #$evid",
+                    $request->entry_date ?? date('Y-m-d'),
+                    \App\Models\Vendor::find($request->vendor_id)
+                );
             } elseif ($request->vendor_type === 'customer') {
                 $ledger = CustomerLedger::where('customer_id', $request->vendor_id)->latest()->first();
                 if ($ledger) {
@@ -1029,7 +1068,7 @@ class VoucherController extends Controller
                 // yahan vendor_type numeric (1,2,3) hai → matlab Account ID
                 $account = Account::find($request->vendor_id);
                 if ($account) {
-                    $account->opening_balance = $account->opening_balance - $amount; // MINUS
+                    $account->current_balance = $account->current_balance - $amount; // MINUS
                     $account->save();
                 }
             }

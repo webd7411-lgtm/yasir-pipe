@@ -44,7 +44,8 @@ class AccountsHeadController extends Controller
         $account = \App\Models\Account::create([
             'head_id' => $request->head_id,
             'title' => $request->title,
-            'opening_balance' => $request->opening_balance, // This will serve as initial debit/credit context usually
+            'opening_balance' => $request->opening_balance,
+            'current_balance' => $request->opening_balance, // Sync current balance initially
             'type' => $request->type,
             'status' => $request->has('status') ? 1 : 0,
         ]);

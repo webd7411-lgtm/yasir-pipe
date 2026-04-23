@@ -151,6 +151,13 @@
       <input type="text" class="form-control total-pieces text-end input-readonly" name="total_pieces[]" readonly placeholder="Box" tabindex="-1">
     </td>
  
+    <!-- Price/Piece (EDITABLE) -->
+    <td class="col-price-p">
+      <input type="text" class="form-control visible-price text-end" name="visible_price[]" placeholder="0.00">
+      <input type="hidden" class="price-per-piece" name="price_per_piece[]">
+      <input type="hidden" class="retail-price"> <!-- Hidden retail/box price storage if needed -->
+    </td>
+
     <!-- DISCOUNT -->
     <td class="col-disc">
       <div class="discount-wrapper">
@@ -158,7 +165,8 @@
                class="form-control discount-value text-end"
                name="item_disc[]"
                placeholder="">
-
+        <!-- Hidden: tells backend whether value is % or fixed PKR -->
+        <input type="hidden" class="discount-type-hidden" name="discount_type[]" value="percent">
         <button type="button"
                 class="btn btn-outline-secondary discount-toggle"
                 data-type="percent" tabindex="-1">%</button>
@@ -167,14 +175,7 @@
 
     <!-- DISCOUNT AMOUNT -->
     <td class="col-disc-amt">
-      <input type="text" class="form-control discount-amount text-end">
-    </td>
-
-    <!-- Price/Piece (EDITABLE) -->
-    <td class="col-price-p">
-      <input type="text" class="form-control visible-price text-end" name="visible_price[]" placeholder="0.00">
-      <input type="hidden" class="price-per-piece" name="price_per_piece[]">
-      <input type="hidden" class="retail-price"> <!-- Hidden retail/box price storage if needed -->
+      <input type="text" class="form-control discount-amount text-end" readonly tabindex="-1">
     </td>
 
     <!-- NET AMOUNT -->
@@ -364,19 +365,15 @@
             gross = unitPrice * totalPieces;
         }
 
-        // Auto Discount
-        if (!isManual) {
-            if (discValue > 0) {
-                if (discType === 'percent') {
-                    dam = (gross * discValue) / 100;
-                } else {
-                    dam = discValue;
-                }
-            } else {
-                dam = 0;
-            }
-            $row.find('.discount-amount').val(dam.toFixed(2));
+        // Discount Calculation — alwys derived from discValue + discType
+        // Never rely on manually entered discount-amount (that field is now readonly/calculated)
+        if (discType === 'percent') {
+            dam = discValue > 0 ? (gross * discValue) / 100 : 0;
+        } else {
+            // PKR / fixed mode: discValue IS the rupee amount
+            dam = discValue > 0 ? discValue : 0;
         }
+        $row.find('.discount-amount').val(dam.toFixed(2));
 
         const netRow = Math.max(0, gross - dam);
         $row.find('.gross-amount').val(gross.toFixed(2));
@@ -831,15 +828,14 @@
             }
         });
 
-        // Discount Toggle
+        // Discount Toggle: % <-> PKR
         $(document).on('click', '.discount-toggle', function() {
             const $btn = $(this);
             const currentType = $btn.data('type');
-            if (currentType === 'percent') {
-                $btn.data('type', 'pkr').text('PKR');
-            } else {
-                $btn.data('type', 'percent').text('%');
-            }
+            const newType = currentType === 'percent' ? 'pkr' : 'percent';
+            $btn.data('type', newType).text(newType === 'percent' ? '%' : 'PKR');
+            // Sync hidden input so form submission carries correct type
+            $btn.closest('.discount-wrapper').find('.discount-type-hidden').val(newType);
             computeRow($btn.closest('tr'));
             updateGrandTotals();
         });

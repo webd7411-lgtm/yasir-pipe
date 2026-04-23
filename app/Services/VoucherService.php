@@ -121,6 +121,21 @@ class VoucherService
                 $includeParty = false;
             }
 
+            // Journal / Returns: Only link party to their Control Account
+            if ($voucher->voucher_type === VoucherMaster::TYPE_JOURNAL && $voucher->party_type) {
+                $balanceService = app(\App\Services\BalanceService::class);
+                $arId = $balanceService->getAccountsReceivableId();
+                $apId = $balanceService->getAccountsPayableId();
+
+                if ($voucher->party_type === \App\Models\Customer::class && $detail->account_id !== $arId) {
+                    $includeParty = false;
+                }
+                
+                if ($voucher->party_type === \App\Models\Vendor::class && $detail->account_id !== $apId) {
+                    $includeParty = false;
+                }
+            }
+
             $this->journalService->recordEntry(
                 $voucher,
                 $detail->account_id,

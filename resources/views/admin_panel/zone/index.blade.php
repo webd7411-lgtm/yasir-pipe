@@ -33,7 +33,7 @@
                                                     <td class="zone">{{ $zone->zone }}</td>
                                                     <td>
                                                         @include('admin_panel.partials.action_buttons', [
-                                                            'editRoute' => route('zones.edit', $zone->id),
+                                                            'editRoute' => route('zone.edit', $zone->id),
                                                             'deleteRoute' => route('zone.delete', $zone->id),
                                                             'editIsLink' => false,
                                                             'permissions' => [

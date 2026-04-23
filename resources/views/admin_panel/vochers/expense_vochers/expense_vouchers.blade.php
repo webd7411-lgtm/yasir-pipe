@@ -55,11 +55,11 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Account</label>
-                                <select name="vendor_id" class="form-select section-account" id="payFromAccount">
+                                <label class="form-label fw-bold text-muted small text-uppercase d-block w-100">Account</label>
+                                <select name="vendor_id" class="form-select w-100" id="payFromAccount" style="width: 100%;">
                                     <option disabled selected>Select Account</option>
                                 </select>
-                                <div class="form-text text-end balance-display" style="display:none;">
+                                <div class="form-text text-start balance-display" style="display:none;">
                                     Balance: <span class="fw-bold text-dark">0.00</span>
                                 </div>
                             </div>
@@ -81,99 +81,69 @@
                         <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-list-check me-2"></i>Expense Details</h6>
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover align-middle" id="voucherTable">
-                                <thead class="table-light text-secondary small text-uppercase">
+                                <thead class="bg-light table-light text-primary small text-uppercase fw-bold" style="letter-spacing: 0.5px;">
                                     <tr>
-                                        <th style="width: 25%">Expense Head / Account</th>
-                                        <th style="width: 25%">Narration</th>
-                                        <th style="width: 15%;">Calculations</th>
-                                        <th style="width: 15%">Amount</th>
-                                        <th style="width: 5%"></th>
+                                        <th style="width: 35%">Expense Category</th>
+                                        <th style="width: 35%">Specific Account</th>
+                                        <th style="width: 20%">Amount</th>
+                                        <th style="width: 10%"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
                                         <td>
-                                            <div class="row g-1">
-                                                <div class="col-12 mb-1">
-                                                    <select name="row_account_head[]"
-                                                        class="form-select form-select-sm rowAccountHead">
-                                                        <option value="">Select Head</option>
-                                                        @foreach ($AccountHeads as $head)
-                                                            <option value="{{ $head->id }}">{{ $head->name }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div class="col-12">
-                                                    <select name="row_account_id[]"
-                                                        class="form-select form-select-sm rowAccountSub">
-                                                        <option value="">Select Expense Account</option>
-                                                    </select>
-                                                </div>
-                                            </div>
+                                            <select name="row_account_head[]"
+                                                class="form-select form-select-sm border-secondary-subtle rowAccountHead" required>
+                                                <option value="">Select Category</option>
+                                                @foreach ($AccountHeads as $head)
+                                                    <option value="{{ $head->id }}">{{ $head->name }}</option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                         <td>
-                                            <div class="input-group input-group-sm">
-                                                <select name="narration_id[]" class="form-select narrationSelect">
-                                                    <option value="">Select / Type</option>
-                                                    @foreach ($narrations as $id => $name)
-                                                        <option value="{{ $id }}">{{ $name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <input type="text" class="form-control form-control-sm mt-1 narrationInput"
-                                                name="narration_text[]" placeholder="Custom Narration..."
-                                                style="display:none;">
+                                            <select name="row_account_id[]"
+                                                class="form-select form-select-sm border-secondary-subtle rowAccountSub" required>
+                                                <option value="">Select Specific Account</option>
+                                            </select>
+                                            <!-- Hidden Narration Fields -->
+                                            <input type="hidden" name="narration_id[]" value="">
+                                            <input type="hidden" name="narration_text[]" value="">
                                         </td>
-                                        <td>
-                                            {{-- Optional Rate/Qty if needed, or just keep it simple --}}
-                                            <div class="input-group input-group-sm mb-1">
-                                                <span class="input-group-text">Qty</span>
-                                                <input type="number" name="kg[]" class="form-control kg"
-                                                    placeholder="1">
-                                            </div>
-                                            <div class="input-group input-group-sm">
-                                                <span class="input-group-text">Rate</span>
-                                                <input type="number" name="rate[]" class="form-control rate"
-                                                    placeholder="0">
-                                            </div>
-                                        </td>
-                                        <td>
+                                        <td class="align-middle">
                                             <input name="amount[]" type="number" step="0.01"
-                                                class="form-control text-end fw-bold amount" placeholder="0.00">
-                                            <input type="hidden" class="baseAmount" value="0">
-                                            <input type="hidden" name="discount_value[]" class="discountValue"
-                                                value="0">
+                                                class="form-control form-control-sm text-end fw-bold amount border-primary text-primary" placeholder="0.00" required>
+                                            <input type="hidden" name="discount_value[]" class="discountValue" value="0">
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center align-middle">
                                             <button type="button"
-                                                class="btn btn-outline-danger btn-sm removeRow rounded-circle">
-                                                <i class="bi bi-x-lg"></i>
+                                                class="btn btn-outline-danger btn-sm py-0 px-2 removeRow" title="Remove Line">
+                                                <i class="bi bi-x"></i>
                                             </button>
                                         </td>
                                     </tr>
                                 </tbody>
                                 <tfoot class="table-light">
                                     <tr>
-                                        <td colspan="3" class="text-end fw-bold text-uppercase">Total Amount</td>
+                                        <td colspan="2" class="text-end fw-bold text-uppercase align-middle">Total Amount</td>
                                         <td>
                                             <input type="text" name="total_amount"
                                                 class="form-control text-end fw-bold border-0 bg-transparent"
-                                                id="totalAmount" readonly value="0.00" style="font-size: 1.1rem;">
+                                                id="totalAmount" readonly value="0.00" style="font-size: 1.25rem;">
                                         </td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
                             </table>
-                            <button type="button" class="btn btn-sm btn-outline-success mt-2" id="addNewRow">
-                                <i class="bi bi-plus-lg me-1"></i> Add Line Item
+                            <button type="button" class="btn btn-outline-primary shadow-sm fw-bold px-4 mt-2" id="addNewRow">
+                                <i class="bi bi-plus-circle me-2"></i> Add Another Expense Line
                             </button>
                         </div>
 
                         {{-- Actions --}}
-                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                            <a href="{{ route('all_expense_vochers') }}" class="btn btn-secondary px-4">Cancel</a>
-                            <button type="submit" class="btn btn-primary px-5 fw-bold"><i
-                                    class="bi bi-save me-2"></i>Save Voucher</button>
+                        <div class="d-flex justify-content-end gap-3 mt-5 pt-3 border-top">
+                            <a href="{{ route('all_expense_vochers') }}" class="btn btn-light border shadow-sm px-4 fw-medium text-dark">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm"><i
+                                    class="bi bi-check2-circle me-2"></i>Post Voucher</button>
                         </div>
                     </form>
                 </div>
@@ -285,49 +255,28 @@
             let newRow = `
             <tr>
                 <td>
-                    <div class="row g-1">
-                        <div class="col-12 mb-1">
-                            <select name="row_account_head[]" class="form-select form-select-sm rowAccountHead">
-                                <option value="">Select Head</option>
-                                @foreach ($AccountHeads as $head)
-                                    <option value="{{ $head->id }}">{{ $head->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <select name="row_account_id[]" class="form-select form-select-sm rowAccountSub">
-                                <option value="">Select Expense Account</option>
-                            </select>
-                        </div>
-                    </div>
+                    <select name="row_account_head[]" class="form-select form-select-sm border-secondary-subtle rowAccountHead" required>
+                        <option value="">Select Category</option>
+                        @foreach ($AccountHeads as $head)
+                            <option value="{{ $head->id }}">{{ $head->name }}</option>
+                        @endforeach
+                    </select>
                 </td>
                 <td>
-                    <div class="input-group input-group-sm">
-                            <select name="narration_id[]" class="form-select narrationSelect">
-                            <option value="">Select / Type</option>
-                            @foreach ($narrations as $id => $name)
-                                <option value="{{ $id }}">{{ $name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <input type="text" class="form-control form-control-sm mt-1 narrationInput" name="narration_text[]" placeholder="Custom Narration..." style="display:none;">
+                    <select name="row_account_id[]" class="form-select form-select-sm border-secondary-subtle rowAccountSub" required>
+                        <option value="">Select Specific Account</option>
+                    </select>
+                    <!-- Hidden Narration Fields -->
+                    <input type="hidden" name="narration_id[]" value="">
+                    <input type="hidden" name="narration_text[]" value="">
                 </td>
-                <td>
-                    <div class="input-group input-group-sm mb-1">
-                        <span class="input-group-text">Qty</span>
-                        <input type="number" name="kg[]" class="form-control kg" placeholder="1">
-                    </div>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text">Rate</span>
-                        <input type="number" name="rate[]" class="form-control rate" placeholder="0">
-                    </div>
+                <td class="align-middle">
+                    <input name="amount[]" type="number" step="0.01" class="form-control form-control-sm text-end fw-bold amount border-primary text-primary" placeholder="0.00" required>
+                    <input type="hidden" name="discount_value[]" class="discountValue" value="0">
                 </td>
-                <td>
-                    <input name="amount[]" type="number" step="0.01" class="form-control text-end fw-bold amount" placeholder="0.00">
-                </td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-outline-danger btn-sm removeRow rounded-circle">
-                        <i class="bi bi-x-lg"></i>
+                <td class="text-center align-middle">
+                    <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 removeRow" title="Remove Line">
+                        <i class="bi bi-x"></i>
                     </button>
                 </td>
             </tr>
