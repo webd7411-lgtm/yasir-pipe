@@ -287,6 +287,21 @@ class ProductController extends Controller
         return response()->json($subcategories);
     }
 
+    public function getAllSubcategoriesJson()
+    {
+        return response()->json(Subcategory::orderBy('name')->get(['id', 'name']));
+    }
+
+    public function getCategoriesJson()
+    {
+        return response()->json(Category::orderBy('name')->get(['id', 'name']));
+    }
+
+    public function getBrandsJson()
+    {
+        return response()->json(Brand::orderBy('name')->get(['id', 'name']));
+    }
+
     // ===== Barcode =====
     public function generateBarcode(Request $request)
     {
@@ -443,6 +458,7 @@ class ProductController extends Controller
                 'purchase_discount_percent' => $request->purchase_discount_percent ?? 0,
                 'sale_discount_percent' => $request->sale_discount_percent ?? 0,
                 'alert_quantity' => $request->alert_quantity,
+                'alert_carton_quantity' => $request->alert_carton_quantity,
 
                 // New Fields
                 'size_mode' => $mode,
@@ -663,6 +679,7 @@ class ProductController extends Controller
                 'purchase_discount_percent' => $request->purchase_discount_percent ?? 0,
                 'sale_discount_percent' => $request->sale_discount_percent ?? 0,
                 'alert_quantity' => $request->alert_quantity,
+                'alert_carton_quantity' => $request->alert_carton_quantity,
 
                 // New Fields
                 'size_mode' => $mode,
@@ -790,6 +807,7 @@ class ProductController extends Controller
             'purchase_discount_percent' => 'nullable|numeric|min:0|max:100',
             'sale_discount_percent' => 'nullable|numeric|min:0|max:100',
             'alert_quantity' => 'nullable|integer|min:0',
+            'alert_carton_quantity' => 'nullable|integer|min:0',
         ];
 
         // Conditional rules logic

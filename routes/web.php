@@ -133,6 +133,7 @@ Route::middleware('auth')->group(function () {
     // Searches
     Route::get('/generate-barcode-image', [ProductController::class, 'generateBarcode'])->name('generate-barcode-image');
     Route::get('/get-subcategories/{category_id}', [ProductController::class, 'getSubcategories'])->name('fetch-subcategories');
+    Route::get('/get-all-subcategories', [ProductController::class, 'getAllSubcategoriesJson'])->name('get-all-subcategories');
     Route::get('/get-categories', [ProductController::class, 'getCategoriesJson'])->name('get-categories');
     Route::get('/get-brands', [ProductController::class, 'getBrandsJson'])->name('get-brands');
 

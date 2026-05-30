@@ -310,9 +310,14 @@
                         <div class="card-panel shadow-sm p-3">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div class="section-title mb-0">Purchase Items</div>
-                                <button type="button" class="btn btn-sm btn-primary px-3 shadow-sm" id="btnAdd">
-                                    <i class="bi bi-plus-lg"></i> Add Row
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-success px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#quickAddProductModal">
+                                        <i class="bi bi-plus-circle me-1"></i>Quick Add Product
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-primary px-3 shadow-sm" id="btnAdd">
+                                        <i class="bi bi-plus-lg"></i> Add Row
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="table-responsive border rounded-3 bg-white">
@@ -488,6 +493,9 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    {{-- Quick Add Product Modal --}}
+    @include('admin_panel.partials.quick_add_product_modal')
 
     <script>
         $(document).ready(function() {
