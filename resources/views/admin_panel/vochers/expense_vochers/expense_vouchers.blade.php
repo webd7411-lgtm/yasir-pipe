@@ -246,8 +246,8 @@
                                     @foreach ($AccountHeads as $head)
                                         <option value="{{ $head->id }}">{{ $head->name }}</option>
                                     @endforeach
-                                    <option value="vendor">Vendor</option>
-                                    <option value="customer">Customer</option>
+                                    <!-- <option value="vendor">Vendor</option>
+                                    <option value="customer">Customer</option> -->
                                 </select>
                             </div>
                             <div class="col-md-4">
