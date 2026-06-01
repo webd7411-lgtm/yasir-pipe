@@ -41,7 +41,7 @@ class WarehouseController extends Controller
                 'warehouse_id' => $warehouse->id,
                 'warehouse_name' => $warehouse->warehouse_name,
                 'stock' => $stockVal, // Total pieces
-                'boxes' => $ws ? $ws->quantity : 0, // Actual box quantity from DB
+                'boxes' => $ws ? ($stockVal / $ppb) : 0, // Dynamically calculated box quantity to prevent rounding errors
                 'ppb' => $ws && $ws->product ? $ws->product->pieces_per_box : 1,
                 'size_mode' => $ws && $ws->product ? $ws->product->size_mode : 'std',
             ];
