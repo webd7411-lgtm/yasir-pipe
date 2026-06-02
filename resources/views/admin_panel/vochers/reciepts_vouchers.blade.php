@@ -239,7 +239,7 @@
                                 <select name="vendor_type" class="rv-input" id="partyType">
                                     <option value="customer" selected>Customer</option>
                                     <option value="walkin">Walk-in</option>
-                                    <!-- <option value="vendor">Vendor</option>/ -->
+                                    <option value="vendor">Vendor</option>/
                                     @foreach ($AccountHeads as $head)
                                         <option value="{{ $head->id }}">{{ $head->name }}</option>
                                     @endforeach

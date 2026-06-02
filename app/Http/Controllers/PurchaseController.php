@@ -265,6 +265,86 @@ class PurchaseController extends Controller
         return redirect()->back()->with('success', 'Purchase confirmed successfully.');
     }
 
+    public function bulkAdditionalDiscount(Request $request)
+    {
+        $request->validate([
+            'purchase_ids' => 'required|array',
+            'purchase_ids.*' => 'exists:purchases,id',
+            'discount_percentage' => 'required|numeric|min:0|max:100',
+        ]);
+
+        $purchaseIds = $request->purchase_ids;
+        $percentage = (float)$request->discount_percentage;
+
+        try {
+            DB::transaction(function () use ($purchaseIds, $percentage) {
+                foreach ($purchaseIds as $id) {
+                    $purchase = Purchase::findOrFail($id);
+                    
+                    // Original net amount is the current net_amount + current additional_discount
+                    $originalNet = (float)$purchase->net_amount + (float)$purchase->additional_discount;
+                    
+                    // Calculate absolute discount based on user-supplied percentage
+                    $newAdditionalDiscount = round($originalNet * ($percentage / 100), 2);
+                    
+                    $oldAdditionalDiscount = (float)$purchase->additional_discount;
+                    $diff = $newAdditionalDiscount - $oldAdditionalDiscount;
+
+                    if ($diff != 0) {
+                        // Update purchase record
+                        $purchase->additional_discount = $newAdditionalDiscount;
+                        $purchase->net_amount = max(0, $purchase->net_amount - $diff);
+                        $purchase->due_amount = max(0, $purchase->due_amount - $diff);
+                        $purchase->save();
+
+                        // If approved, update ledger & journal entries
+                        if ($purchase->status_purchase === 'approved') {
+                            // 1. Adjust legacy VendorLedger closing balance
+                            $vendorLedger = \App\Models\VendorLedger::where('vendor_id', $purchase->vendor_id)->first();
+                            if ($vendorLedger) {
+                                $vendorLedger->closing_balance -= $diff;
+                                $vendorLedger->save();
+                            }
+
+                            // 2. Adjust Journal Vouchers
+                            $voucher = \App\Models\VoucherMaster::where('remarks', "Purchase Voucher #{$purchase->invoice_no}")->first();
+                            if ($voucher) {
+                                $voucher->total_amount = max(0, $voucher->total_amount - $diff);
+                                $voucher->save();
+
+                                $balanceService = app(\App\Services\BalanceService::class);
+                                $expenseAccountId = $balanceService->getPurchaseExpenseId();
+                                $apAccountId = $balanceService->getAccountsPayableId();
+
+                                // Update debit for expense
+                                \App\Models\JournalEntry::where('source_type', \App\Models\VoucherMaster::class)
+                                    ->where('source_id', $voucher->id)
+                                    ->where('account_id', $expenseAccountId)
+                                    ->update(['debit' => $purchase->net_amount]);
+
+                                // Update credit for accounts payable
+                                \App\Models\JournalEntry::where('source_type', \App\Models\VoucherMaster::class)
+                                    ->where('source_id', $voucher->id)
+                                    ->where('account_id', $apAccountId)
+                                    ->update(['credit' => $purchase->net_amount]);
+                            }
+                        }
+                    }
+                }
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Additional discount percentage applied successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function store(Request $request, $gatepassId = null)
     {
         // (A) Gatepass fetch if provided

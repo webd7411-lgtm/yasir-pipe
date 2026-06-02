@@ -192,6 +192,24 @@
             border-radius: 8px !important;
             overflow: visible !important;
         }
+
+        /* Custom styled controls for inline Bulk Discount Card */
+        .btn-circle-custom {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 50% !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #475569 !important;
+            background-color: transparent !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.2s;
+        }
+        .btn-circle-custom:hover {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
     </style>
 
     <div class="main-content">
@@ -306,7 +324,10 @@
                             <table id="purchase-table" class="table table-hover align-middle datanew premium-table" style="width:100%">
                                 <thead class="bg-light">
                                     <tr>
-                                        <th class="py-3 ps-3 rounded-start text-secondary fw-semibold text-uppercase small">Bill#</th>
+                                        <th class="py-3 ps-3 rounded-start text-secondary fw-semibold text-uppercase small" style="width: 40px; vertical-align: middle;">
+                                            <input type="checkbox" id="selectAllPurchases" style="cursor: pointer; width: 16px; height: 16px; margin: 0 auto !important;">
+                                        </th>
+                                        <th class="py-3 text-secondary fw-semibold text-uppercase small">Bill#</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small">Date</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small">Invoice No</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small">M.Bill</th>
@@ -323,6 +344,51 @@
                                     @include('admin_panel.purchase.partials.purchase_table_body')
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Bulk Discount Card (Placed below the table with the correct premium card theme) -->
+                        <div id="bulk-discount-bar" class="d-none card mt-4 shadow-sm" style="border: 2px solid #cbd5e1 !important; border-radius: 12px; background-color: #ffffff;">
+                            <div class="card-body p-4">
+                                <div class="d-flex flex-column">
+                                    <!-- Header Row -->
+                                    <div class="d-flex align-items-center mb-3" style="color: #2563eb; font-size: 16px; font-weight: 700;">
+                                        <i class="fas fa-tag mr-2"></i>
+                                        <span>Apply additional discount to <span id="selected-purchases-count-text">0</span> selected rows</span>
+                                    </div>
+                                    
+                                    <!-- Input Row with % Addon -->
+                                    <div class="mb-3">
+                                        <label class="form-label mb-1 text-secondary font-weight-bold" style="font-size: 12px; letter-spacing: 0.5px;">DISCOUNT PERCENTAGE (%)</label>
+                                        <div class="input-group">
+                                            <input type="number" id="bulk-discount-input" min="0" max="100" step="0.1" class="form-control" placeholder="Enter discount percentage (e.g. 5 for 5%)" style="border: 2px solid #cbd5e1 !important; border-radius: 8px 0 0 8px !important; height: 42px; font-size: 15px; font-weight: 500;">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text" style="background-color: #f1f5f9; border: 2px solid #cbd5e1; border-left: none; border-radius: 0 8px 8px 0 !important; font-weight: bold; color: #475569; display: flex; align-items: center; padding: 0 15px;">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Footer Row -->
+                                    <div class="d-flex align-items-center justify-content-between mt-2">
+                                        <div class="d-flex align-items-center">
+                                            <button type="button" id="btn-save-bulk-discount" class="btn btn-premium-primary px-4 py-2 d-flex align-items-center mr-2" style="height: 40px; font-weight: bold; border-radius: 8px;">
+                                                <i class="fas fa-check mr-2"></i> Save Changes
+                                            </button>
+                                            <button type="button" id="btn-cancel-bulk-discount" class="btn btn-premium-secondary px-4 py-2" style="height: 40px; font-weight: bold; border-radius: 8px;">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="d-flex align-items-center">
+                                            <button type="button" id="btn-minimize-bulk-bar" class="btn-circle-custom p-0 mr-3">
+                                                <i class="fas fa-arrow-down"></i>
+                                            </button>
+                                            <div style="font-size: 13px; color: #64748b; font-weight: 600;">
+                                                <span id="selected-ratio-text">0 of 0</span> purchases selected
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -464,6 +530,109 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         form.submit();
+                    }
+                });
+            });
+
+            // Bulk select checkboxes logic
+            function updateBulkDiscountBar() {
+                let selectedRows = $('.select-purchase-row:checked');
+                let count = selectedRows.length;
+                let total = $('.select-purchase-row').length;
+                if (count > 0) {
+                    $('#selected-purchases-count-text').text(count);
+                    $('#selected-ratio-text').text(count + ' of ' + total);
+                    $('#bulk-discount-bar').removeClass('d-none');
+                } else {
+                    $('#bulk-discount-bar').addClass('d-none');
+                }
+            }
+
+            $(document).on('change', '.select-purchase-row', function() {
+                updateBulkDiscountBar();
+                let allChecked = $('.select-purchase-row').length === $('.select-purchase-row:checked').length;
+                $('#selectAllPurchases').prop('checked', allChecked);
+            });
+
+            $(document).on('change', '#selectAllPurchases', function() {
+                let isChecked = $(this).is(':checked');
+                $('.select-purchase-row').prop('checked', isChecked);
+                updateBulkDiscountBar();
+            });
+
+            // Cancel button functionality
+            $(document).on('click', '#btn-cancel-bulk-discount', function() {
+                $('.select-purchase-row').prop('checked', false);
+                $('#selectAllPurchases').prop('checked', false);
+                updateBulkDiscountBar();
+            });
+
+            // Minimize / dismiss button functionality (acts like cancel)
+            $(document).on('click', '#btn-minimize-bulk-bar', function() {
+                $('.select-purchase-row').prop('checked', false);
+                $('#selectAllPurchases').prop('checked', false);
+                updateBulkDiscountBar();
+            });
+
+            // Recheck on AJAX table redraw (scoped to purchase requests only to prevent background polls from interfering)
+            $(document).ajaxComplete(function(event, xhr, settings) {
+                if (settings && settings.url && (settings.url.indexOf('Purchase') !== -1 || settings.url.indexOf('purchase') !== -1)) {
+                    $('#selectAllPurchases').prop('checked', false);
+                    updateBulkDiscountBar();
+                }
+            });
+
+            // Save bulk additional discount
+            $(document).on('click', '#btn-save-bulk-discount', function() {
+                let selectedIds = $('.select-purchase-row:checked').map(function() {
+                    return $(this).val();
+                }).get();
+                let discountValue = $('#bulk-discount-input').val();
+
+                if (selectedIds.length === 0) {
+                    Swal.fire('Error', 'Please select at least one purchase.', 'error');
+                    return;
+                }
+                if (discountValue === '' || discountValue < 0 || discountValue > 100) {
+                    Swal.fire('Error', 'Please enter a valid discount percentage (0 to 100).', 'error');
+                    return;
+                }
+
+                let btn = $(this);
+                let origHtml = btn.html();
+                btn.prop('disabled', true).html('<i class="las la-spinner la-spin me-1"></i> Saving...');
+
+                $.ajax({
+                    url: '{{ route("purchases.bulk-additional-discount") }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        purchase_ids: selectedIds,
+                        discount_percentage: discountValue
+                    },
+                    success: function(response) {
+                        btn.prop('disabled', false).html(origHtml);
+                        if (response.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error', response.message || 'Failed to save discount.', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        btn.prop('disabled', false).html(origHtml);
+                        let msg = 'Failed to save discount.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            msg = xhr.responseJSON.message;
+                        }
+                        Swal.fire('Error', msg, 'error');
                     }
                 });
             });

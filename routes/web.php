@@ -240,6 +240,7 @@ Route::middleware('auth')->group(function () {
     route::post('/Purchase/store', [PurchaseController::class, 'store'])->middleware('permission:purchases.create|purchases.edit')->name('store.Purchase');
     Route::get('/purchase/{id}/edit', [PurchaseController::class, 'edit'])->middleware('permission:purchases.edit')->name('purchase.edit');
     Route::put('/purchase/{id}', [PurchaseController::class, 'update'])->middleware('permission:purchases.edit')->name('purchase.update');
+    Route::post('/purchases/bulk-additional-discount', [PurchaseController::class, 'bulkAdditionalDiscount'])->middleware('permission:purchases.edit')->name('purchases.bulk-additional-discount');
     Route::get('/purchase/{id}/confirm', [PurchaseController::class, 'confirm'])->middleware('permission:purchases.create|purchases.edit')->name('purchase.confirm');
     Route::delete('/purchase/{id}', [PurchaseController::class, 'destroy'])->middleware('permission:purchases.delete')->name('purchase.destroy');
     Route::get('/search-products', [ProductController::class, 'searchProducts'])->name('search-products');
