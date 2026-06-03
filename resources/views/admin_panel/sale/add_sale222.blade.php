@@ -637,12 +637,6 @@
                             
                             <!-- Row 2: Customer selection, Remarks, Date -->
                             <div class="row g-2 align-items-end">
-                                <div class="col-sm-5">
-                                    <label class="form-label fw-bold text-secondary mb-1" style="font-size: 0.82rem;">Customer:</label>
-                                    <select class="form-select" id="customerSelect" name="customer" style="width:100%">
-                                        <option value=""></option>
-                                    </select>
-                                </div>
                                 <div class="col-sm-4">
                                     <label class="form-label fw-bold text-secondary mb-1" style="font-size: 0.82rem;">Remarks (Optional):</label>
                                     <input type="text" class="form-control" name="reference" id="remarks" placeholder="Enter remarks..." style="height: 38px !important;">
@@ -650,6 +644,12 @@
                                 <div class="col-sm-3">
                                     <label class="form-label fw-bold text-secondary mb-1" style="font-size: 0.82rem;">Date:</label>
                                     <input type="text" class="form-control" id="displayDateInput" value="{{ date('d/m/Y') }}" readonly style="background-color: #ffffff; cursor: default; height: 38px !important;">
+                                </div>
+                                <div class="col-sm-5">
+                                    <label class="form-label fw-bold text-secondary mb-1" style="font-size: 0.82rem;">Customer:</label>
+                                    <select class="form-select" id="customerSelect" name="customer" style="width:100%">
+                                        <option value=""></option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
