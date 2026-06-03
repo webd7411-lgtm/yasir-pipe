@@ -411,7 +411,8 @@
                                     <thead>
                                         <tr>
                                             <th class="col-product">Product</th>
-                                            <th class="col-qty">Boxes</th>
+                                            <th class="col-qty">Cartons</th>
+                                            <th class="col-qty">Loose Pcs</th>
                                             <th class="col-stock">Pack Size</th>
                                             <th class="col-pieces">Pieces</th>
                                             <th class="col-price">Price</th>
@@ -467,18 +468,17 @@
                                                         value="{{ $item->length }}">
                                                     <input type="hidden" name="width[]" class="hidden-width"
                                                         value="{{ $item->width }}">
-                                                    {{-- Hidden Box/Loose Calc fields --}}
-                                                    <input type="hidden" name="boxes_qty[]" class="hidden-boxes-qty"
-                                                        value="{{ $boxes }}">
-                                                    <input type="hidden" name="loose_qty[]" class="hidden-loose-qty"
-                                                        value="{{ $loose }}">
+                                                    </td>
+                                                <td>
+                                                    <input type="number" class="form-control carton-qty" name="boxes_qty[]"
+                                                        value="{{ $boxes }}" placeholder="Cartons" min="0">
                                                 </td>
                                                 <td>
-                                                    <input type="text" class="form-control box-qty"
-                                                        value="{{ $displayBoxes }}" placeholder="Boxes">
+                                                    <input type="number" class="form-control loose-qty" name="loose_qty[]"
+                                                        value="{{ $loose }}" placeholder="Loose Pcs" min="0">
                                                 </td>
                                                 <td>
-                                                    <input type="number" class="form-control input-readonly pack-size"
+                                                    <input type="number" class="form-control input-readonly pack-size" name="pieces_per_box_display[]"
                                                         value="{{ $ppb }}" readonly>
                                                 </td>
                                                 <td>
@@ -648,11 +648,10 @@
                         <input type="hidden" name="pieces_per_m2[]" class="hidden-pieces-per-m2" value="0">
                         <input type="hidden" name="length[]" class="hidden-length">
                         <input type="hidden" name="width[]" class="hidden-width">
-                        <input type="hidden" name="boxes_qty[]" class="hidden-boxes-qty" value="0">
-                        <input type="hidden" name="loose_qty[]" class="hidden-loose-qty" value="0">
-                    </td>
-                    <td><input type="text" class="form-control box-qty" placeholder="Boxes"></td>
-                    <td><input type="number" class="form-control input-readonly pack-size" value="1" readonly></td>
+                        </td>
+                    <td><input type="number" class="form-control carton-qty" name="boxes_qty[]" value="0" placeholder="Cartons" min="0"></td>
+                    <td><input type="number" class="form-control loose-qty" name="loose_qty[]" value="0" placeholder="Loose Pcs" min="0"></td>
+                    <td><input type="number" class="form-control input-readonly pack-size" name="pieces_per_box_display[]" value="1" readonly></td>
                     <td><input type="number" name="qty[]" class="form-control input-readonly qty-pcs" value="0" readonly></td>
                     <td><div class="input-group input-group-sm"><input type="number" name="price[]" class="form-control input-readonly price" step="0.01" value="0" readonly tabindex="-1"></div></td>
                     <td><input type="number" class="form-control item-disc-percent" value="0"></td>
@@ -672,10 +671,7 @@
             });
 
             // Inputs -> Calc
-            $('#purchaseTableBody').on('input', '.box-qty, .price, .item-disc-percent, .item-disc-amt', function() {
-                if ($(this).hasClass('box-qty')) {
-                    normalizeQtyInput($(this), $(this).closest('tr'));
-                }
+            $('#purchaseTableBody').on('input', '.carton-qty, .loose-qty, .price, .item-disc-percent, .item-disc-amt', function() {
                 recalcRow($(this).closest('tr'));
                 recalcAll();
             });
@@ -771,33 +767,25 @@
             }
 
             function recalcRow($row) {
-                let boxesStr = $row.find('.box-qty').val();
-                if (!boxesStr) boxesStr = "0";
-                boxesStr = boxesStr.toString();
-
                 const ppb = parseFloat($row.find('.pack-size').val()) || 1;
                 const sizeMode = $row.data('sizemode') || $row.find('.hidden-size-mode').val();
-                const pieces_per_m2 = parseFloat($row.data('pieces_per_m2')) || parseFloat($row.find(
-                    '.hidden-pieces-per-m2').val()) || 0;
+                const pieces_per_m2 = parseFloat($row.data('pieces_per_m2')) || parseFloat($row.find('.hidden-pieces-per-m2').val()) || 0;
 
-                let boxes = 0;
-                let loose = 0;
-                let totalPieces = 0;
+                // Read separate Carton + Loose inputs
+                const cartons = parseInt($row.find('.carton-qty').val()) || 0;
+                let loose = parseInt($row.find('.loose-qty').val()) || 0;
 
-                if (ppb > 1 && boxesStr.includes('.')) {
-                    const parts = boxesStr.split('.');
-                    boxes = parseInt(parts[0]) || 0;
-                    loose = parts[1] ? parseInt(parts[1]) : 0;
-                    totalPieces = (boxes * ppb) + loose;
-                } else {
-                    boxes = parseFloat(boxesStr) || 0;
-                    totalPieces = boxes * ppb;
+                // Auto-convert excess loose into cartons
+                if (loose >= ppb && ppb > 1) {
+                    const extraCartons = Math.floor(loose / ppb);
+                    loose = loose % ppb;
+                    $row.find('.carton-qty').val(cartons + extraCartons);
+                    $row.find('.loose-qty').val(loose);
                 }
 
-                // Update hidden separate fields
-                $row.find('.hidden-boxes-qty').val(boxes);
-                $row.find('.hidden-loose-qty').val(loose);
+                const totalPieces = (cartons * ppb) + loose;
 
+                // Update the readonly Pieces field (sent as qty[])
                 $row.find('.qty-pcs').val(totalPieces);
 
                 const price = parseFloat($row.find('.price').val()) || 0;
@@ -808,16 +796,8 @@
                 if (sizeMode == 'by_size') {
                     // Price is per M2. Total M2 = totalPieces * pieces_per_m2 (m2/piece)
                     grossTotal = (totalPieces * pieces_per_m2) * price;
-                } else if (sizeMode == 'by_cartons') {
-                    // Price is per Carton.
-                    // If ppb > 0
-                    if (ppb > 0) {
-                        grossTotal = (totalPieces / ppb) * price;
-                    } else {
-                        grossTotal = totalPieces * price; // fallback
-                    }
                 } else {
-                    // Price is per Piece
+                    // price is always treated as per-piece for purchase entry
                     grossTotal = totalPieces * price;
                 }
 
@@ -949,12 +929,9 @@
                     if (sizeMode === 'by_size') {
                         price = pM2;
                         unitLabel = '(m²)';
-                    } else if (sizeMode === 'by_cartons') {
-                        price = pPiece * ppb; // Carton Price
-                        unitLabel = '(carton)';
                     } else {
                         price = pPiece;
-                        unitLabel = '(piece)';
+                        unitLabel = '(pieces)';
                     }
 
                     $row.find('.price').val(price);
