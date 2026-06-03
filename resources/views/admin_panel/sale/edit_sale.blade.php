@@ -24,7 +24,7 @@
 
         /* base table width */
         .sales-table {
-            min-width: 1000px;
+            min-width: 700px;
         }
 
         /* 🔹 DISCOUNT COLUMN – THORI SI BARI */
@@ -80,7 +80,7 @@
             }
 
             .sales-table {
-                min-width: 1000px;
+                min-width: 700px;
             }
 
             .minw-350 {
@@ -123,7 +123,7 @@
         @media (max-width: 576px) {
 
             .sales-table {
-                min-width: 950px;
+                min-width: 650px;
             }
 
             .discount-wrapper .discount-value {
@@ -243,121 +243,142 @@
             box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15) !important;
         }
 
+        /* 💎 PREMIUM MODERN ERP THEME FOR TRANSACTION ENTRY 💎 */
+        body {
+            background-color: #f8fafc;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        
+        /* Containers & Cards */
         .main-container {
+            border: 2px solid #475569 !important; /* Bold outer border */
+            border-radius: 12px !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05) !important;
+            background-color: #ffffff !important;
+            padding: 24px !important;
             font-size: .85rem;
             max-width: 98%;
-            /* Widen container */
         }
-
-        .header-text {
-            font-size: 1.1rem;
+        
+        .card-panel {
+            background-color: #f8fafc !important;
+            border: 2px solid #cbd5e1 !important; /* Bold panel borders */
+            border-radius: 10px !important;
+            padding: 20px !important;
+            height: 100%;
+            transition: all 0.2s;
         }
-
+        
+        .card-panel:hover {
+            border-color: #94a3b8 !important;
+        }
+        
+        .totals-card {
+            background-color: #f1f5f9 !important;
+            border: 2px solid #cbd5e1 !important; /* Bold summary borders */
+            border-radius: 10px !important;
+            padding: 20px !important;
+        }
+        
+        /* Bold Section Titles */
+        .section-title {
+            font-weight: 800 !important;
+            text-transform: uppercase;
+            font-size: 0.8rem !important;
+            letter-spacing: 1px !important;
+            color: #1e293b !important;
+            margin-bottom: 16px !important;
+            border-left: 4px solid #2563eb !important;
+            padding-left: 10px !important;
+        }
+        
+        /* Clean inputs with bold borders */
         .form-control,
         .form-select,
-        .btn {
-            font-size: .82rem;
-            /* Slightly smaller for density */
-            padding: .3rem .4rem;
-            /* Reduce padding */
-            height: auto;
+        .select2-container--default .select2-selection--single {
+            border: 2px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            padding: 6px 12px !important;
+            font-weight: 500 !important;
+            color: #1e293b !important;
+            background-color: #ffffff !important;
+            transition: all 0.2s ease-in-out !important;
+            height: auto !important;
+            font-size: 0.85rem !important;
         }
-
-        .invalid-cell {
-            background-color: #fff5f5 !important;
-            /* soft red */
-            border: 1px solid #e3342f !important;
-            /* red border */
+        
+        .form-control:focus,
+        .form-select:focus,
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15) !important;
+            outline: none !important;
         }
-
-        .invalid-select,
-        .invalid-input {
-            border-color: #e3342f !important;
-            box-shadow: none !important;
-        }
-
+        
+        /* Read-only fields */
         .input-readonly {
-            background: #f9fbff;
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #475569 !important;
+            font-weight: 600 !important;
+            cursor: not-allowed !important;
         }
-
-        .section-title {
-            font-weight: 700;
-            color: #6c757d;
-            letter-spacing: .3px;
+        
+        /* Elegant & Bold Buttons */
+        .btn-action-primary {
+            background-color: #2563eb !important;
+            border: 2px solid #1d4ed8 !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            border-radius: 8px !important;
+            padding: 8px 20px !important;
+            transition: all 0.2s;
+            font-size: 0.85rem !important;
         }
-
-        .table {
-            --bs-table-padding-y: .35rem;
-            --bs-table-padding-x: .5rem;
-            font-size: .85rem;
+        .btn-action-primary:hover {
+            background-color: #1d4ed8 !important;
+            transform: translateY(-1px);
+            color: #ffffff !important;
         }
-
-        .table thead th {
-            position: sticky;
-            top: 0;
-            z-index: 2;
-            background: #f8f9fa;
-            text-align: center;
+        
+        .btn-action-secondary {
+            background-color: #ffffff !important;
+            border: 2px solid #cbd5e1 !important;
+            color: #475569 !important;
+            font-weight: 700 !important;
+            border-radius: 8px !important;
+            padding: 8px 20px !important;
+            transition: all 0.2s;
+            font-size: 0.85rem !important;
         }
-
+        .btn-action-secondary:hover {
+            background-color: #f1f5f9 !important;
+            color: #1e293b !important;
+        }
+        
+        /* Transaction Grid / Table */
         .table-responsive {
-            /* max-height removed to allow expansion */
-            overflow-x: auto;
-            overflow-y: visible;
-            border: 1px solid #eee;
-            border-radius: .5rem;
+            border: 1px solid #cbd5e1 !important; /* Elegant outer border */
+            border-radius: 8px !important;
+            overflow-x: auto !important;
+            overflow-y: visible !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
             min-height: 200px;
+            background-color: #ffffff;
         }
-
+        
         .minw-350 {
             min-width: 320px;
             width: 320px;
             flex-shrink: 0;
         }
 
-        .w-70 {
-            width: 70px
-        }
-
-        .w-90 {
-            width: 90px
-        }
-
-        .w-110 {
-            width: 110px
-        }
-
-        .w-120 {
-            width: 120px
-        }
-
-        .w-150 {
-            width: 150px
-        }
-
-        .totals-card {
-            background: #fcfcfe;
-            border: 1px solid #eee;
-            border-radius: .5rem;
-        }
-
-        .totals-card .row+.row {
-            border-top: 1px dashed #e5e7eb;
-        }
-
-        .badge-soft {
-            background: #eef2ff;
-            color: #3730a3;
-        }
-    </style>
-    <style>
-        /* ===== Sales Table UI Fix ===== */
         .sales-table {
             border-collapse: collapse !important;
             margin-bottom: 0 !important;
             min-width: 935px;
         }
-
+        
         .sales-table thead th {
             background-color: #f8fafc !important; /* Light clean header */
             color: #0f172a !important;
@@ -376,7 +397,7 @@
             text-align: left !important;
             padding-left: 12px !important;
         }
-
+        
         .sales-table tbody td {
             border: 1px solid #cbd5e1 !important; /* Flat interior cell borders */
             padding: 0 !important; /* Zero padding to let input fill cell completely */
@@ -500,7 +521,7 @@
             background-color: #cbd5e1 !important;
             color: #0f172a !important;
         }
-
+        
         .sales-table tfoot td {
             background-color: #f8fafc !important;
             border: 1px solid #cbd5e1 !important;
@@ -509,12 +530,12 @@
             font-weight: 700 !important;
             color: #0f172a !important;
         }
-
+        
         /* Row hover */
         .sales-table tbody tr:hover td {
             background-color: #f8fafc !important;
         }
-
+        
         /* Column Widths */
         .col-product { width: 180px; min-width: 180px; }
         .col-warehouse { min-width: 130px; }
@@ -528,10 +549,26 @@
         .col-price-m2 { width: 90px; }
         .col-amount { width: 100px; }
         .col-action { width: 40px; text-align: center; }
+
+        /* Invalid cells & inputs */
+        .invalid-cell {
+            background-color: #fff5f5 !important;
+            border: 2px solid #ef4444 !important;
+        }
+        .invalid-select,
+        .invalid-input {
+            border-color: #ef4444 !important;
+            box-shadow: none !important;
+        }
+        
+        .badge-soft {
+            background: #eef2ff;
+            color: #3730a3;
+            font-weight: 700;
+        }
     </style>
 
-
-    <div class="container-fluid py-2">
+<div class="container-fluid py-2">
         <div class="main-container bg-white border shadow-sm mx-auto p-2 rounded-3">
             <div id="alertBox" class="alert d-none mb-3" role="alert"></div>
             <form id="saleForm">
@@ -557,7 +594,9 @@
                     <div class="d-flex align-items-center gap-2">
                         <button type="button" class="btn btn-sm btn-success" id="btnHeaderPosted"
                             disabled>Sale</button>
-                    </div>                <!-- HORIZONTAL TOP PANEL -->
+                    </div>
+                </div>
+
                 <!-- HORIZONTAL TOP PANEL -->
                 <div class="p-3 border rounded-3 bg-white mb-3 shadow-sm">
                     <div class="row align-items-stretch g-3">
