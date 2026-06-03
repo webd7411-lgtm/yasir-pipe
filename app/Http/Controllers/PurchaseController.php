@@ -241,6 +241,7 @@ class PurchaseController extends Controller
     {
         DB::transaction(function () use ($id) {
             $purchase = Purchase::with('items')->findOrFail($id);
+            $oldNetAmount = $purchase->net_amount;
 
             if ($purchase->status_purchase !== 'draft') {
                 return; // already approved or invalid state
@@ -951,6 +952,7 @@ class PurchaseController extends Controller
 
         DB::transaction(function () use ($validated, $request, $id) {
             $purchase = Purchase::with('items')->findOrFail($id);
+            $oldNetAmount = $purchase->net_amount;
 
             $branchId = (int) ($validated['branch_id'] ?? $purchase->branch_id ?? 1);
             $warehouseId = (int) ($validated['warehouse_id'] ?? $purchase->warehouse_id);
@@ -999,12 +1001,8 @@ class PurchaseController extends Controller
                 if ($curSizeMode === 'by_size') {
                     // price is per m2. Gross = TotalPieces * m2_per_piece * price_per_m2
                     $grossTotal = $curPPM2 * $qty * $price;
-                } elseif ($curSizeMode === 'by_cartons' || $curSizeMode === 'by_carton') {
-                    // For cartons, price is per carton, so divide by pieces_per_box to get price per piece
-                    $ppb = isset($ppbs[$i]) && $ppbs[$i] > 0 ? (float) $ppbs[$i] : 1;
-                    $grossTotal = $qty * ($price / $ppb);
                 } else {
-                    // Standard
+                    // price is always treated as per-piece for purchase entry
                     $grossTotal = $qty * $price;
                 }
 
@@ -1105,19 +1103,43 @@ class PurchaseController extends Controller
                 }
             }
 
-            // Vendor ledger (simple overwrite pattern)
-            $prevClosing = \App\Models\VendorLedger::where('vendor_id', $purchase->vendor_id)
-                ->value('closing_balance') ?? 0;
-            \App\Models\VendorLedger::updateOrCreate(
-                ['vendor_id' => $purchase->vendor_id],
-                [
+            $diff = $netAmount - $oldNetAmount;
+
+            // Update Vendor Ledger accurately with diff
+            $vendorLedger = \App\Models\VendorLedger::where('vendor_id', $purchase->vendor_id)->first();
+            if ($vendorLedger) {
+                $vendorLedger->closing_balance += $diff;
+                $vendorLedger->save();
+            } else {
+                \App\Models\VendorLedger::create([
                     'vendor_id' => $purchase->vendor_id,
                     'admin_or_user_id' => auth()->id(),
-                    'previous_balance' => $prevClosing,
-                    'opening_balance' => $prevClosing,
-                    'closing_balance' => $prevClosing + $netAmount,
-                ]
-            );
+                    'previous_balance' => 0,
+                    'opening_balance' => 0,
+                    'closing_balance' => $netAmount,
+                ]);
+            }
+
+            // Adjust Journal Vouchers correctly
+            $voucher = \App\Models\VoucherMaster::where('remarks', "Purchase Voucher #{$purchase->invoice_no}")->first();
+            if ($voucher) {
+                $voucher->total_amount = max(0, $voucher->total_amount + $diff);
+                $voucher->save();
+
+                $balanceService = app(\App\Services\BalanceService::class);
+                $expenseAccountId = $balanceService->getPurchaseExpenseId();
+                $apAccountId = $balanceService->getAccountsPayableId();
+
+                \App\Models\JournalEntry::where('source_type', \App\Models\VoucherMaster::class)
+                    ->where('source_id', $voucher->id)
+                    ->where('account_id', $expenseAccountId)
+                    ->update(['debit' => $purchase->net_amount]);
+
+                \App\Models\JournalEntry::where('source_type', \App\Models\VoucherMaster::class)
+                    ->where('source_id', $voucher->id)
+                    ->where('account_id', $apAccountId)
+                    ->update(['credit' => $purchase->net_amount]);
+            }
         });
 
         return redirect()->route('Purchase.home')->with('success', 'Purchase updated successfully!');
@@ -1127,6 +1149,7 @@ class PurchaseController extends Controller
     {
         DB::transaction(function () use ($id) {
             $purchase = Purchase::with('items')->findOrFail($id);
+            $oldNetAmount = $purchase->net_amount;
 
             $branchId = (int) ($purchase->branch_id ?? 1);
             $warehouseId = (int) ($purchase->warehouse_id);
