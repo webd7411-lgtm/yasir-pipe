@@ -68,7 +68,7 @@
 </div>
 @endsection
 
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="{{ asset('assets/js/jquery.min.js') }}"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css" />
 <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
 <script>
@@ -95,11 +95,12 @@
                 res.forEach((s, i) => {
                     let products = s.product.split(',').join('<br>');
                     let qtyArr = s.qty.split(',');
+                    let qtyPiecesArr = s.total_pieces ? s.total_pieces.split(',') : (s.qty_decimal ? s.qty_decimal.split(',') : qtyArr);
                     let price = s.per_price.split(',').join('<br>');
                     let total = s.per_total.split(',').join('<br>');
 
-                    // qty total per row
-                    let rowQty = qtyArr.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
+                    // qty total per row (calculation only using pieces)
+                    let rowQty = qtyPiecesArr.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
                     grandQty += rowQty;
 
                     // calculate totals

@@ -454,7 +454,30 @@ class ReportingController extends Controller
                     return $item->product ? $item->product->item_code : '-';
                 })->implode(',');
 
-                $qtys = $sale->items->pluck('qty')->implode(',');
+                // Use formatted string for display, and decimal for calculation
+                $qtys = $sale->items->map(function ($item) {
+                    $ppb = $item->product && $item->product->pieces_per_box > 0 ? (int) $item->product->pieces_per_box : 1;
+                    $tp = (int) $item->total_pieces;
+                    $mode = $item->product ? $item->product->size_mode : 'by_pieces';
+                    
+                    if ($mode == 'by_pieces') {
+                        return $tp . ' Pcs';
+                    } else {
+                        $b = floor($tp / $ppb);
+                        $l = $tp % $ppb;
+                        $uom = $mode == 'by_cartons' ? 'Ctn' : 'Box';
+                        if ($b > 0 && $l > 0) {
+                            return $b . ' ' . $uom . ' + ' . $l . ' Pcs';
+                        } elseif ($b > 0) {
+                            return $b . ' ' . $uom;
+                        } else {
+                            return $l . ' Pcs';
+                        }
+                    }
+                })->implode(',');
+                
+                $qty_decimals = $sale->items->pluck('qty')->implode(',');
+                $total_pieces_arr = $sale->items->pluck('total_pieces')->implode(',');
                 $prices = $sale->items->pluck('price')->implode(','); // Unit Price
                 $totals = $sale->items->pluck('total')->implode(','); // Line Total
 
@@ -468,6 +491,8 @@ class ReportingController extends Controller
                     'per_price' => $prices,
                     'per_discount' => 0,             
                     'qty' => $qtys,
+                    'qty_decimal' => $qty_decimals,
+                    'total_pieces' => $total_pieces_arr,
                     'per_total' => $totals,
                     'total_net' => $sale->total_net,
                     'created_at' => $sale->created_at->format('Y-m-d H:i:s'),
