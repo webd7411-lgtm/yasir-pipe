@@ -3,6 +3,13 @@
     
     @if (session('success'))
         <script>
+        // Fix ARIA focus warning on modal close
+        $('.modal').on('hide.bs.modal', function () {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+        });
+
             document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({
                     icon: 'success',
@@ -22,7 +29,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h3>Category</h3>
                             @can('categories.create')
-                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal"
+                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal"
                                     id="reset">Create
                                 </button>
                             @endcan
@@ -76,7 +83,7 @@
     </div>
     </div>
 
-    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" >
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -92,7 +99,7 @@
                         </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close
                     </button>
                     @canany(['categories.add', 'categories.edit'])
                         <input type="submit" class="btn btn-primary save-btn">
@@ -103,18 +110,23 @@
         </div>
     </div>
     <!-- DataTable CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    
 
    <!-- jQuery -->
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
-
-    <!-- DataTable JS -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<!-- DataTable JS -->
+    
+    
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
-    <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
-    <script src="{{ asset('assets/js/mycode.js') }}"></script>
+<script src="{{ asset('assets/js/mycode.js') }}"></script>
     <script>
+        // Fix ARIA focus warning on modal close
+        $('.modal').on('hide.bs.modal', function () {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+        });
+
         $(document).on('submit', '.myform', function(e) {
             e.preventDefault();
             var formdata = new FormData(this);
@@ -136,6 +148,13 @@
         });
     </script>
     <script>
+        // Fix ARIA focus warning on modal close
+        $('.modal').on('hide.bs.modal', function () {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+        });
+
         $(document).ready(function() {
             $('#default-datatable').DataTable({
                 "pageLength": 10,

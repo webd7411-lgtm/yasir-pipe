@@ -8,7 +8,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h3>Zone</h3>
                             @can('zones.create')
-                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal"
+                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createModal"
                                     id="reset">
                                     Create
                                 </button>
@@ -60,7 +60,7 @@
     </div>
 
     <!-- CREATE MODAL -->
-    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" >
         <div class="modal-dialog">
             <form class="myform" action="{{ route('zone.store') }}" method="POST">
                 @csrf
@@ -75,7 +75,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                         @can('zones.create')
                             <input type="submit" class="btn btn-primary save-btn" value="Save">
                         @endcan
@@ -86,7 +86,7 @@
     </div>
 
     <!-- EDIT MODAL -->
-    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" >
         <div class="modal-dialog">
             <form class="editform" action="{{ route('zone.store') }}" method="POST">
                 @csrf
@@ -102,7 +102,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                         @can('zones.edit')
                             <input type="submit" class="btn btn-primary save-btn" value="Update">
                         @endcan
@@ -113,12 +113,16 @@
     </div>
 
     <!-- SCRIPTS -->
-   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+   
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+        // Fix ARIA focus warning on modal close
+        $('.modal').on('hide.bs.modal', function () {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+        });
 
-    <script>
         $(document).ready(function() {
             $('#default-datatable').DataTable({
                 pageLength: 10,

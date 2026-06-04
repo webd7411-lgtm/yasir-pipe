@@ -884,7 +884,7 @@
     </div>
 
     <!-- Create/Edit Role Modal -->
-    <div class="modal fade" id="roleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="roleModal" tabindex="-1" >
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header gradient">
@@ -893,7 +893,7 @@
                         <span>Create New Role</span>
                     </h5>
                     <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
+                        <span >&times;</span>
                     </button>
                 </div>
                 <form id="roleForm" action="{{ route('roles.store') }}" method="POST">
@@ -930,7 +930,7 @@
     </div>
 
     <!-- Edit Permissions Modal -->
-    <div class="modal fade" id="permissionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="permissionModal" tabindex="-1" >
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header gradient">
@@ -942,7 +942,7 @@
                         <small class="text-white-50 mt-1" id="permRoleName">Role: Super Admin</small>
                     </div>
                     <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
+                        <span >&times;</span>
                     </button>
                 </div>
                 <div class="modal-body" style="max-height: 70vh; overflow-y: auto; background: #f8fafc;">
@@ -991,8 +991,7 @@
     </div>
 
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
-
-    <script>
+<script>
         const allPermissions = @json($allPermissions);
 
         $(document).ready(function() {

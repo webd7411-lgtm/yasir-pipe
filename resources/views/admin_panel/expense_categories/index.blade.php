@@ -73,13 +73,13 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" >
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title fw-bold" id="exampleModalLabel">Add Expense Category</h5>
                     <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
+                        <span >&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
@@ -111,14 +111,12 @@
     </div>
 
  <!-- DataTable CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    
     <link rel="stylesheet" href="{{ asset('assets/vendors/bootstrap-icons/css/bootstrap-icons.min.css') }}">
 
     <!-- jQuery & JS -->
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="{{ asset('assets/js/mycode.js') }}"></script>
+<script src="{{ asset('assets/js/mycode.js') }}"></script>
 
     <script>
         // Fix ARIA focus warning on modal close
