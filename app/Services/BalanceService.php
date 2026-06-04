@@ -189,7 +189,7 @@ class BalanceService
         // Purchases in range (Increase payable - they go in Debit column = money we owe)
         $purchases = DB::table('purchases')
             ->where('vendor_id', $vendorId)
-            ->where('status_purchase', 'approved')
+            ->whereIn('status_purchase', ['approved', 'Returned'])
             ->whereBetween('purchase_date', [$startDate, $endDate])
             ->select('id', 'invoice_no', 'net_amount', 'purchase_date')
             ->get()
