@@ -69,13 +69,13 @@
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label fw-bold">Start Date</label>
-                                <input type="date" name="start_date" id="start_date" class="form-control"
-                                    value="2000-01-01">
+                                <input type="text" name="start_date" id="start_date" class="form-control datepicker-custom bg-white"
+                                    value="2000-01-01" placeholder="dd/mm/yyyy">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label fw-bold">End Date</label>
-                                <input type="date" name="end_date" id="end_date" class="form-control"
-                                    value="{{ date('Y-m-d') }}">
+                                <input type="text" name="end_date" id="end_date" class="form-control datepicker-custom bg-white"
+                                    value="{{ date('Y-m-d') }}" placeholder="dd/mm/yyyy">
                             </div>
                             <div class="col-md-3 d-flex align-items-end">
                                 <button type="button" id="btnSearch" class="btn btn-primary w-100"><i
@@ -160,8 +160,14 @@
                     return;
                 }
 
-                $("#start_date").val(formatDateForInput(start));
-                $("#end_date").val(formatDateForInput(end));
+                let pickerStart = document.getElementById('start_date')._flatpickr;
+                let pickerEnd = document.getElementById('end_date')._flatpickr;
+                if(pickerStart) pickerStart.setDate(start);
+                else $("#start_date").val(formatDateForInput(start));
+                
+                if(pickerEnd) pickerEnd.setDate(end);
+                else $("#end_date").val(formatDateForInput(end));
+                
                 loadLedger();
             });
 

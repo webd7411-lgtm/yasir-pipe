@@ -284,11 +284,11 @@
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label mb-1">From Date</label>
-                                        <input type="date" class="form-control datepicker-custom" name="from_date" id="filter_from_date">
+                                        <input type="text" class="form-control datepicker-custom bg-white" name="from_date" id="filter_from_date" placeholder="dd/mm/yyyy">
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label mb-1">To Date</label>
-                                        <input type="date" class="form-control datepicker-custom" name="to_date" id="filter_to_date">
+                                        <input type="text" class="form-control datepicker-custom bg-white" name="to_date" id="filter_to_date" placeholder="dd/mm/yyyy">
                                     </div>
                                     <!-- <div class="col-md-2">
                                         <label class="form-label mb-1">Mobile No</label>
