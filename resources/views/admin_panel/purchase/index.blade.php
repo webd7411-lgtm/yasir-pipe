@@ -536,11 +536,20 @@
                 });
             });
 
+            // Helper to get DataTables nodes if available
+            function getPurchaseNodes() {
+                if ($.fn.DataTable.isDataTable('#purchase-table')) {
+                    return $('#purchase-table').DataTable().rows().nodes();
+                }
+                return document;
+            }
+
             // Bulk select checkboxes logic
             function updateBulkDiscountBar() {
-                let selectedRows = $('.select-purchase-row:checked');
+                let nodes = getPurchaseNodes();
+                let selectedRows = $('.select-purchase-row:checked', nodes);
                 let count = selectedRows.length;
-                let total = $('.select-purchase-row').length;
+                let total = $('.select-purchase-row', nodes).length;
                 if (count > 0) {
                     $('#selected-purchases-count-text').text(count);
                     $('#selected-ratio-text').text(count + ' of ' + total);
@@ -552,26 +561,30 @@
 
             $(document).on('change', '.select-purchase-row', function() {
                 updateBulkDiscountBar();
-                let allChecked = $('.select-purchase-row').length === $('.select-purchase-row:checked').length;
+                let nodes = getPurchaseNodes();
+                let allChecked = $('.select-purchase-row', nodes).length > 0 && $('.select-purchase-row', nodes).length === $('.select-purchase-row:checked', nodes).length;
                 $('#selectAllPurchases').prop('checked', allChecked);
             });
 
             $(document).on('change', '#selectAllPurchases', function() {
                 let isChecked = $(this).is(':checked');
-                $('.select-purchase-row').prop('checked', isChecked);
+                let nodes = getPurchaseNodes();
+                $('.select-purchase-row', nodes).prop('checked', isChecked);
                 updateBulkDiscountBar();
             });
 
             // Cancel button functionality
             $(document).on('click', '#btn-cancel-bulk-discount', function() {
-                $('.select-purchase-row').prop('checked', false);
+                let nodes = getPurchaseNodes();
+                $('.select-purchase-row', nodes).prop('checked', false);
                 $('#selectAllPurchases').prop('checked', false);
                 updateBulkDiscountBar();
             });
 
             // Minimize / dismiss button functionality (acts like cancel)
             $(document).on('click', '#btn-minimize-bulk-bar', function() {
-                $('.select-purchase-row').prop('checked', false);
+                let nodes = getPurchaseNodes();
+                $('.select-purchase-row', nodes).prop('checked', false);
                 $('#selectAllPurchases').prop('checked', false);
                 updateBulkDiscountBar();
             });
@@ -586,7 +599,8 @@
 
             // Save bulk additional discount
             $(document).on('click', '#btn-save-bulk-discount', function() {
-                let selectedIds = $('.select-purchase-row:checked').map(function() {
+                let nodes = getPurchaseNodes();
+                let selectedIds = $('.select-purchase-row:checked', nodes).map(function() {
                     return $(this).val();
                 }).get();
                 let discountValue = $('#bulk-discount-input').val();
