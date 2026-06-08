@@ -260,7 +260,7 @@
             <div class="col-6">
                 <div class="info-box">
                     <div class="info-box-header">Reference</div>
-                    <div><span class="info-label">Inv #:</span> <strong>{{ $sale->id }}</strong></div>
+                    <div><span class="info-label">Inv #:</span> <strong>{{ $sale->invoice_no }}</strong></div>
                     <div><span class="info-label">Date:</span> {{ $sale->created_at->format('d-m-Y') }}</div>
                     @if($sale->reference)
                     <div style="margin-top:4px; padding-top:4px; border-top:1px dashed #ddd;">
@@ -433,12 +433,18 @@
         <!-- Footer -->
         <div class="row mt-2">
             <div class="col-7">
-                <div class="terms-box pt-2" contenteditable="true" style="outline: none; padding: 5px; border-radius: 4px;" title="Click to edit terms before printing" onfocus="this.style.backgroundColor='#f8f9fa';" onblur="this.style.backgroundColor='transparent';">
-                    <p class="fw-bold mb-1">Terms & Conditions: <small class="fw-normal text-muted" style="font-size: 8px;">(Editable)</small></p>
+                <div class="terms-box pt-2">
+                    <p class="fw-bold mb-1">Terms & Conditions:</p>
                     <ul style="font-size: 10px;">
-                        <li>10% will be deducted on return of purchase goods within 7 days.</li>
-                        <li>Loose & Water Soak products will not be RETURNED.</li>
-                        <li>Please bring this invoice for any returns or exchanges.</li>
+                        @php
+                            $invoiceTerms = \App\Models\Setting::get('invoice_terms', "10% will be deducted on return of purchase goods within 7 days.\nLoose & Water Soak products will not be RETURNED.\nPlease bring this invoice for any returns or exchanges.");
+                            $termLines = explode("\n", $invoiceTerms);
+                        @endphp
+                        @foreach($termLines as $line)
+                            @if(trim($line))
+                                <li>{{ trim($line) }}</li>
+                            @endif
+                        @endforeach
                     </ul>
                 </div>
 

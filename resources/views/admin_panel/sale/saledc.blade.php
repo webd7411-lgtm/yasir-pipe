@@ -261,7 +261,7 @@
             <div class="col-4">
                 <div class="info-box">
                     <div class="info-box-header">Reference</div>
-                    <div><span class="info-label">DC #:</span> <strong>{{ $sale->id }}</strong></div>
+                    <div><span class="info-label">DC #:</span> <strong>{{ $sale->invoice_no }}</strong></div>
                     <div><span class="info-label">Date:</span> {{ $sale->created_at->format('d-m-Y') }}</div>
                     @if($sale->reference)
                     <div style="margin-top:4px; padding-top:4px; border-top:1px dashed #ddd;">
@@ -392,12 +392,18 @@
         <!-- Footer -->
         <div class="row mt-2">
             <div class="col-7">
-                <div class="terms-box pt-2" contenteditable="true" style="outline: none; padding: 5px; border-radius: 4px;" title="Click to edit terms before printing" onfocus="this.style.backgroundColor='#f8f9fa';" onblur="this.style.backgroundColor='transparent';">
-                    <p class="fw-bold mb-1">Terms & Conditions: <small class="fw-normal text-muted" style="font-size: 8px;">(Editable)</small></p>
+                <div class="terms-box pt-2">
+                    <p class="fw-bold mb-1">Terms & Conditions:</p>
                     <ul style="font-size: 10px;">
-                        <li>Please check items upon delivery.</li>
-                        <li>This is a Delivery Challan, not a final invoice.</li>
-                        <li>Goods once sold will not be returned without this challan.</li>
+                        @php
+                            $dcTerms = \App\Models\Setting::get('invoice_terms', "Please check items upon delivery.\nThis is a Delivery Challan, not a final invoice.\nSign and stamp to confirm receipt of goods in good condition.");
+                            $termLines = explode("\n", $dcTerms);
+                        @endphp
+                        @foreach($termLines as $line)
+                            @if(trim($line))
+                                <li>{{ trim($line) }}</li>
+                            @endif
+                        @endforeach
                     </ul>
                 </div>
 

@@ -214,7 +214,7 @@
 
         <!-- Meta -->
         <div class="meta-info">
-            <span><strong>DC #:</strong> {{ $sale->id }}</span>
+            <span><strong>DC #:</strong> {{ $sale->invoice_no }}</span>
             <span>{{ $sale->created_at->format('d-m-Y h:i A') }}</span>
         </div>
         <div class="meta-info">
