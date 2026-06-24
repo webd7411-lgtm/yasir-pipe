@@ -60,13 +60,7 @@ class ReportingController extends Controller
             $balance = (float) $product->warehouseStocks->sum('total_pieces');
 
             // Purchased qty & amount (for historical display only)
-            $purchaseData = DB::table('purchase_items')
-                ->where('product_id', $product->id)
-                ->select(DB::raw('COALESCE(SUM(qty),0) as total_qty'), DB::raw('COALESCE(SUM(line_total),0) as total_amount'))
-                ->first();
-
-            $purchased      = (float) $purchaseData->total_qty;
-            $purchaseAmount = (float) $purchaseData->total_amount;
+            [$purchased, $purchaseAmount] = $this->getPurchasedQtyAndNetAmount($product->id);
 
             // Sold qty & amount (Net)
             $saleStats = DB::table('sale_items')
@@ -179,13 +173,7 @@ class ReportingController extends Controller
                 ->where('ref_type', 'INIT')
                 ->sum('qty');
 
-            $purchaseData = DB::table('purchase_items')
-                ->where('product_id', $product->id)
-                ->select(DB::raw('COALESCE(SUM(qty),0) as total_qty'), DB::raw('COALESCE(SUM(line_total),0) as total_amount'))
-                ->first();
-
-            $purchased = (float) $purchaseData->total_qty;
-            $purchaseAmount = (float) $purchaseData->total_amount;
+            [$purchased, $purchaseAmount] = $this->getPurchasedQtyAndNetAmount($product->id);
 
             $productPurchPrice = 0;
             if ($product->size_mode === 'by_size') {
@@ -274,13 +262,7 @@ class ReportingController extends Controller
                 ->where('ref_type', 'INIT')
                 ->sum('qty');
 
-            $purchaseData = DB::table('purchase_items')
-                ->where('product_id', $product->id)
-                ->select(DB::raw('COALESCE(SUM(qty),0) as total_qty'), DB::raw('COALESCE(SUM(line_total),0) as total_amount'))
-                ->first();
-
-            $purchased = (float) $purchaseData->total_qty;
-            $purchaseAmount = (float) $purchaseData->total_amount;
+            [$purchased, $purchaseAmount] = $this->getPurchasedQtyAndNetAmount($product->id);
 
             $productPurchPrice = 0;
             if ($product->size_mode === 'by_size') {
@@ -935,15 +917,7 @@ class ReportingController extends Controller
                 ->sum('qty');
 
             // Purchased
-            $purchaseData = DB::table('purchase_items')
-                ->join('purchases', 'purchases.id', '=', 'purchase_items.purchase_id')
-                ->where('purchase_items.product_id', $p->id)
-                ->where('purchases.purchase_date', '<=', $dateEnd)
-                ->select(DB::raw('COALESCE(SUM(purchase_items.qty),0) as total_qty'), DB::raw('COALESCE(SUM(purchase_items.line_total),0) as total_amount'))
-                ->first();
-
-            $purchased = (float) $purchaseData->total_qty;
-            $purchaseAmount = (float) $purchaseData->total_amount;
+            [$purchased, $purchaseAmount] = $this->getPurchasedQtyAndNetAmount($p->id, ['before' => $dateEnd]);
 
             // Sold
             $saleStats = DB::table('sale_items')
@@ -1539,5 +1513,30 @@ class ReportingController extends Controller
             'payables' => $totalPayables,
             'top_customers' => $topCustomers,
         ]);
+    }
+
+    private function getPurchasedQtyAndNetAmount(int $productId, array $dateFilter = []): array
+    {
+        $query = DB::table('purchase_items')
+            ->join('purchases', 'purchases.id', '=', 'purchase_items.purchase_id')
+            ->where('purchase_items.product_id', $productId)
+            ->whereIn('purchases.status_purchase', ['approved', 'posted']);
+
+        if (!empty($dateFilter) && isset($dateFilter['before'])) {
+            $query->where('purchases.purchase_date', '<=', $dateFilter['before']);
+        }
+
+        $result = $query->select(DB::raw("
+            COALESCE(SUM(purchase_items.qty), 0) as total_qty,
+            COALESCE(SUM(
+                CASE
+                    WHEN COALESCE(purchases.subtotal, 0) > 0
+                    THEN purchase_items.line_total / purchases.subtotal * purchases.net_amount
+                    ELSE purchase_items.line_total
+                END
+            ), 0) as total_net_amount
+        "))->first();
+
+        return [(float) $result->total_qty, (float) $result->total_net_amount];
     }
 }
