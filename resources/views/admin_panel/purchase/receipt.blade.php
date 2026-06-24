@@ -205,10 +205,10 @@
             <span>{{ number_format($purchase->subtotal, 2) }}</span>
         </div>
 
-        @if ($purchase->discount > 0)
+        @if ($purchase->additional_discount > 0)
             <div class="info-row">
-                <span>Discount:</span>
-                <span>-{{ number_format($purchase->discount, 2) }}</span>
+                <span>Additional Discount:</span>
+                <span>-{{ number_format($purchase->additional_discount, 2) }}</span>
             </div>
         @endif
 
@@ -219,8 +219,8 @@
             </div>
         @endif
 
-        <div class="total-row" style="font-size: 14px; border-top: 1px solid #000; margin-top: 5px; padding-top: 2px;">
-            <span>TOTAL NET:</span>
+        <div class="total-row" style="font-size: 14px; border-top: 1px dashed #000; margin-top: 5px; padding-top: 2px;">
+            <span>Total Net:</span>
             <span>{{ number_format($purchase->net_amount, 2) }}</span>
         </div>
 

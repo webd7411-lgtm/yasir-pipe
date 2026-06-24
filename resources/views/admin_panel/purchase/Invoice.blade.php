@@ -411,22 +411,22 @@
                             <td class="text-dark">Subtotal</td>
                             <td class="text-end">{{ number_format($purchase->subtotal, 2) }}</td>
                         </tr>
+                        @if ($purchase->additional_discount > 0)
+                            <tr>
+                                <td>Additional Discount</td>
+                                <td class="text-end text-danger">
+                                    @php
+                                        $billDiscPercent = $purchase->subtotal > 0 ? ($purchase->additional_discount / $purchase->subtotal) * 100 : 0;
+                                    @endphp
+                                    <span style="font-size: 10px;" class="me-1">({{ number_format($billDiscPercent, 1) }}%)</span>
+                                    -{{ number_format($purchase->additional_discount, 2) }}
+                                </td>
+                            </tr>
+                        @endif
                         @if ($purchase->extra_cost > 0)
                             <tr>
                                 <td>Extra Cost</td>
                                 <td class="text-end">{{ number_format($purchase->extra_cost, 2) }}</td>
-                            </tr>
-                        @endif
-                        @if ($purchase->discount > 0)
-                            <tr>
-                                <td>Discount</td>
-                                <td class="text-end text-danger">
-                                    @php
-                                        $billDiscPercent = $purchase->subtotal > 0 ? ($purchase->discount / $purchase->subtotal) * 100 : 0;
-                                    @endphp
-                                    <span style="font-size: 10px;" class="me-1">({{ number_format($billDiscPercent, 1) }}%)</span>
-                                    -{{ number_format($purchase->discount, 2) }}
-                                </td>
                             </tr>
                         @endif
                         <tr class="total-row" style="background-color: #e9ecef;">
