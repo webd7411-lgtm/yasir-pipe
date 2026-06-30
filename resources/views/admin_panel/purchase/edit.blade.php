@@ -500,11 +500,11 @@
                                                         $gross = $item->line_total + $item->item_discount;
                                                         $dPct = $gross > 0 ? ($item->item_discount / $gross) * 100 : 0;
                                                     @endphp
-                                                    <input type="number" class="form-control item-disc-percent"
+                                                    <input type="number" name="item_discount[]" class="form-control item-disc-percent"
                                                         value="{{ round($dPct, 2) }}">
                                                 </td>
                                                 <td>
-                                                    <input type="number" name="item_discount[]"
+                                                    <input type="number"
                                                         class="form-control item-disc-amt"
                                                         value="{{ (float) $item->item_discount }}">
                                                 </td>
@@ -654,8 +654,8 @@
                     <td><input type="number" class="form-control input-readonly pack-size" name="pieces_per_box_display[]" value="1" readonly></td>
                     <td><input type="number" name="qty[]" class="form-control input-readonly qty-pcs" value="0" readonly></td>
                     <td><div class="input-group input-group-sm"><input type="number" name="price[]" class="form-control price" step="0.01" value="0"></div></td>
-                    <td><input type="number" class="form-control item-disc-percent" value="0"></td>
-                    <td><input type="number" name="item_discount[]" class="form-control item-disc-amt" value="0"></td>
+                    <td><input type="number" name="item_discount[]" class="form-control item-disc-percent" value="0"></td>
+                    <td><input type="number" class="form-control item-disc-amt" value="0"></td>
                     <td><input type="number" class="form-control input-readonly row-total" value="0" readonly></td>
                     <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-row border-0"><i class="bi bi-x-lg"></i></button></td>
                 </tr>`;
